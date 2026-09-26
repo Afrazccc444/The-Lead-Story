@@ -1,0 +1,21 @@
+{
+  "name": "the-lead-story",
+  "version": "2.0.0",
+  "private": true,
+  "description": "The Lead Story — a weekly global politics newsletter written by student editors (IB CAS project)",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c red,gray \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

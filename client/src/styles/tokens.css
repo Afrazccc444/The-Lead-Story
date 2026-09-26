@@ -1,0 +1,61 @@
+/* ─────────────────────────────────────────────────────────────
+   The Lead Story — design tokens
+   Print-meets-digital: paper, ink, hairline rules, one accent.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Colour */
+  --ink: #111111;            /* primary text, rules at full weight */
+  --ink-2: #3a3a36;          /* secondary text */
+  --ink-3: #66665f;          /* muted metadata (≥ 4.5:1 on paper) */
+  --paper: #f9f9f6;          /* page background */
+  --paper-2: #f1f1ec;        /* recessed panels */
+  --paper-3: #ffffff;        /* inputs, raised surfaces */
+  --rule: #e5e5df;           /* hairline borders */
+  --rule-strong: #cfcfc6;
+  --accent: #8b0000;         /* the single editorial accent */
+  --accent-ink: #ffffff;
+  --accent-wash: #f4e9e6;
+
+  /* Status (admin only; always paired with an icon and label) */
+  --good: #2f5d3a;
+  --good-wash: #e8efe8;
+  --warn: #7a5200;
+  --warn-wash: #f5eedd;
+  --bad: #8b0000;
+  --bad-wash: #f4e9e6;
+  --active: #1f3f6b;
+  --active-wash: #e6ebf2;
+
+  /* Type */
+  --font-display: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* Fluid type scale (mobile → ultra-wide) */
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-1: clamp(1.18rem, 1.1rem + 0.35vw, 1.35rem);
+  --step-2: clamp(1.4rem, 1.25rem + 0.7vw, 1.8rem);
+  --step-3: clamp(1.75rem, 1.45rem + 1.4vw, 2.6rem);
+  --step-4: clamp(2.2rem, 1.6rem + 2.8vw, 4.1rem);
+  --step-5: clamp(2.6rem, 1.7rem + 4.2vw, 5.6rem);
+
+  /* Space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+
+  /* Layout */
+  --page-max: 1360px;
+  --measure: 66ch;
+
+  --rule-width: 1px;
+  --focus: 2px solid var(--accent);
+}

@@ -1,0 +1,21 @@
+import { Link, useParams } from 'react-router-dom';
+import EditionView from '../components/newsletter/EditionView.jsx';
+import { useApi, useDocumentTitle } from '../lib/useApi.js';
+
+export default function EditionPage() {
+  const { slug } = useParams();
+  const { data, error, loading } = useApi(`/editions/${encodeURIComponent(slug)}`);
+  const edition = data?.edition;
+  useDocumentTitle(edition?.lead_headline ?? null);
+
+  if (loading) return <p className="state-message">Loading edition…</p>;
+  if (error) {
+    return (
+      <p className="state-message">
+        {error.status === 404 ? 'This edition does not exist or has not been published.' : error.message}{' '}
+        <Link to="/all">See all editions</Link>
+      </p>
+    );
+  }
+  return <EditionView edition={edition} />;
+}
