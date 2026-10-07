@@ -6,7 +6,7 @@ export default function DataTrends({ panels, count }) {
   if (!visible.length) return null;
 
   return (
-    <section className="trends" aria-labelledby="trends-title">
+    <section id="data-trends" className="trends" aria-labelledby="trends-title">
       <header className="section-head">
         <h2 id="trends-title" className="section-head__title">
           Data &amp; Trends

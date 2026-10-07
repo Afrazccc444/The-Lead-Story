@@ -1,13 +1,50 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import EditionView from '../components/newsletter/EditionView.jsx';
+import PdfButton from '../components/PdfButton.jsx';
 import { api } from '../lib/api.js';
 import { formatDateTime, REGION_LABELS } from '../lib/format.js';
 import { useDocumentTitle } from '../lib/useApi.js';
-import { EditionStatus, Notice } from './components.jsx';
-import { DataPointsField, LinesField, ListEditor, TextArea, TextField } from './fields.jsx';
+import { deleteWarning, EditionStatus, Notice } from './components.jsx';
+import { CtaEditor, ExplainersEditor, FeaturesEditor, HeroEditor, PollEditor, PromoEditor, SectionsEditor, SidebarEditor, TagsField, VideoClipsEditor } from './LayoutEditors.jsx';
+import { composeSections, splitIntoSections } from '../lib/sections.js';
+import { DataPointsField, ImageUpload, LinesField, ListEditor, MarkdownField, TextArea, TextField } from './fields.jsx';
 
 const REGION_KEYS = ['americas', 'emea', 'apac', 'global_south'];
+
+/** Memoised so the preview only re-renders when the (deferred) edition actually changes. */
+const PreviewPane = memo(function PreviewPane({ edition }) {
+  return edition ? <EditionView edition={edition} preview /> : null;
+});
+
+/** "bbc.co.uk/news" → "https://bbc.co.uk/news", "me@x.com" → "mailto:me@x.com". */
+function fixLink(value) {
+  const v = (value ?? '').trim();
+  if (!v || /^(https?:\/\/|mailto:)/i.test(v)) return v;
+  return /^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(v) ? `mailto:${v}` : `https://${v.replace(/^\/+/, '')}`;
+}
+
+/** Tidy every clickable link in the edition before saving. */
+function normalizeLinks(content) {
+  const lead = content.lead_story ?? {};
+  return {
+    ...content,
+    // Photo/video slots that were added but never uploaded are left out.
+    lead_story: lead.sections ? { ...lead, sections: lead.sections.map((s) => ({ ...s, media: (s.media ?? []).filter((m) => m.url) })) } : lead,
+    bibliography: (content.bibliography ?? []).map((b) => ({ ...b, url: fixLink(b.url) })),
+    hero: content.hero && { ...content.hero, link: fixLink(content.hero.link) },
+    sidebar: content.sidebar && {
+      ...content.sidebar,
+      links: (content.sidebar.links ?? []).map((l) => ({ ...l, url: fixLink(l.url) })),
+      sponsors: (content.sidebar.sponsors ?? []).map((s) => ({ ...s, url: fixLink(s.url) })),
+    },
+    features: (content.features ?? []).map((f) => ({
+      ...f,
+      blocks: (f.blocks ?? []).map((b) => ({ ...b, cta_url: fixLink(b.cta_url) })),
+    })),
+    cta: content.cta && { ...content.cta, button_url: fixLink(content.cta.button_url) },
+  };
+}
 
 function draftFrom(edition) {
   return {
@@ -43,7 +80,7 @@ export default function EditorPage() {
       .catch((err) => setLoadError(err));
   }, [id, adopt]);
 
-  const dirty = draft !== null && JSON.stringify(draft) !== baseline;
+  const dirty = useMemo(() => draft !== null && JSON.stringify(draft) !== baseline, [draft, baseline]);
   useDocumentTitle(edition ? `Issue ${edition.issue_number}` : 'Edition');
 
   // Warn before closing the tab with unsaved work.
@@ -62,7 +99,7 @@ export default function EditorPage() {
     setBusy('save');
     setMessage(null);
     try {
-      const { edition: saved } = await api.patch(`/admin/editions/${id}`, draft);
+      const { edition: saved } = await api.patch(`/admin/editions/${id}`, { ...draft, content: normalizeLinks(draft.content) });
       adopt(saved);
       setMessage({ tone: 'good', text: saved.status === 'published' ? 'Saved — the live edition is updated.' : 'Draft saved.' });
       return saved;
@@ -88,10 +125,17 @@ export default function EditorPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const previewEdition = useMemo(
-    () => (edition && draft ? { ...edition, ...draft } : null),
-    [edition, draft],
-  );
+  const previewEdition = useMemo(() => {
+    if (!edition || !draft) return null;
+    const lead = draft.content.lead_story;
+    // With headline sections, the preview shows the article exactly as the server will build it.
+    const content = lead.sections?.length
+      ? { ...draft.content, lead_story: { ...lead, body_markdown: composeSections(lead.sections) } }
+      : draft.content;
+    return { ...edition, ...draft, content };
+  }, [edition, draft]);
+  // The preview renders "just behind" your typing, so keystrokes never wait for it.
+  const deferredPreview = useDeferredValue(previewEdition);
 
   if (loadError) return <Notice tone="error">Could not load this edition: {loadError.message}</Notice>;
   if (!draft) return <p className="state-message">Loading…</p>;
@@ -101,6 +145,8 @@ export default function EditorPage() {
   const shareUrl = `${window.location.origin}/edition/${edition.slug}`;
   const setContent = (fn) => setDraft((d) => ({ ...d, content: fn(d.content) }));
   const setLead = (field, value) => setContent((c) => ({ ...c, lead_story: { ...c.lead_story, [field]: value } }));
+  // Editions written before photos were added have no image object yet.
+  const leadImage = { url: '', caption: '', credit: '', ...content.lead_story.image };
 
   async function publish() {
     if (dirty && !(await save())) return;
@@ -132,7 +178,7 @@ export default function EditorPage() {
   }
 
   async function remove() {
-    if (!window.confirm(`Delete issue ${edition.issue_number} permanently? This cannot be undone.`)) return;
+    if (!window.confirm(deleteWarning(edition))) return;
     try {
       await api.del(`/admin/editions/${id}`);
       setBaseline(JSON.stringify(draft)); // nothing left to save
@@ -165,6 +211,14 @@ export default function EditorPage() {
         <button type="button" className="btn" onClick={save} disabled={!dirty || Boolean(busy)} title="Ctrl+S">
           {busy === 'save' ? 'Saving…' : 'Save'}
         </button>
+        <PdfButton
+          pdfUrl={`/api/admin/editions/${id}/pdf`}
+          fileName={`The-Lead-Story-Issue-${edition.issue_number}${isPublished ? '' : '-DRAFT'}.pdf`}
+          label="PDF"
+          className="btn btn--ghost"
+          // Unsaved edits are saved first so the PDF matches what you see.
+          before={async () => (dirty ? Boolean(await save()) : true)}
+        />
         {isPublished ? (
           <>
             <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost">
@@ -182,7 +236,7 @@ export default function EditorPage() {
       </div>
 
       {message && (
-        <Notice tone={message.tone} onClose={() => setMessage(null)}>
+        <Notice key={message.text} tone={message.tone} onClose={() => setMessage(null)} sticky={Boolean(message.link)}>
           {message.text}
           {message.link && isPublished && (
             <>
@@ -220,7 +274,10 @@ export default function EditorPage() {
                 hint="Leave empty to use the day you publish."
               />
             </div>
+            <TagsField value={content.tags} onChange={(tags) => setContent((c) => ({ ...c, tags }))} />
           </fieldset>
+
+          <HeroEditor value={content.hero} onChange={(hero) => setContent((c) => ({ ...c, hero }))} />
 
           <fieldset className="editor-section">
             <legend>The Lead Story</legend>
@@ -229,14 +286,47 @@ export default function EditorPage() {
             <TextArea label="Subheadline" rows={2} value={content.lead_story.subheadline} onChange={(v) => setLead('subheadline', v)} />
             <TextArea label="Deck (one-sentence summary)" rows={2} value={content.lead_story.deck} onChange={(v) => setLead('deck', v)} />
             <TextField label="Byline (writer’s name)" value={content.lead_story.byline} onChange={(v) => setLead('byline', v)} />
-            <TextArea
-              label="Article"
-              rows={22}
-              mono
-              value={content.lead_story.body_markdown}
-              onChange={(v) => setLead('body_markdown', v)}
-              hint="Leave a blank line between paragraphs. Start a line with ## for a subheading. Cite your bibliography with [1], [2] … and use **bold** or *italic* for emphasis."
-            />
+            <div className="editor-image">
+              <ImageUpload
+                label="Main photo (optional)"
+                value={leadImage.url}
+                onChange={(url) => setLead('image', { ...leadImage, url })}
+                hint="Shown large under the headline. Big photos are resized automatically."
+              />
+              {leadImage.url && (
+                <div className="grid-2">
+                  <TextField label="Photo caption" value={leadImage.caption} onChange={(v) => setLead('image', { ...leadImage, caption: v })} />
+                  <TextField label="Photo credit" value={leadImage.credit} onChange={(v) => setLead('image', { ...leadImage, credit: v })} placeholder="e.g. Reuters / Jane Doe" />
+                </div>
+              )}
+            </div>
+            {/* The article: headline sections (headline + response + photos/videos),
+                or the classic single box for older editions until converted. */}
+            {content.lead_story.sections?.length || !content.lead_story.body_markdown?.trim() ? (
+              <SectionsEditor value={content.lead_story.sections ?? []} onChange={(v) => setLead('sections', v)} />
+            ) : (
+              <>
+                <MarkdownField
+                  label="Article"
+                  rows={22}
+                  value={content.lead_story.body_markdown}
+                  onChange={(v) => setLead('body_markdown', v)}
+                  hint="Leave a blank line between paragraphs. Start a line with ## for a subheading. Cite your bibliography with [1], [2] … and use **bold** or *italic* for emphasis. To add a photo, click Insert image or paste/drag one into the text, then edit its caption."
+                />
+                <div className="convert-box">
+                  <p>
+                    <strong>New:</strong> write this article as separate headlines, each with its own response, photos and videos.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    onClick={() => setLead('sections', splitIntoSections(content.lead_story.body_markdown))}
+                  >
+                    Split into headline sections
+                  </button>
+                </div>
+              </>
+            )}
             <h4 className="mini-title">Key figures (optional)</h4>
             <ListEditor
               items={content.lead_story.key_metrics}
@@ -253,15 +343,32 @@ export default function EditorPage() {
                 </div>
               )}
             />
-            <TextArea
+            <MarkdownField
               label="Historical context (optional)"
               rows={7}
-              mono
               value={content.lead_story.historical_context_markdown}
               onChange={(v) => setLead('historical_context_markdown', v)}
             />
             <LinesField label="What to watch (optional)" value={content.lead_story.what_to_watch} onChange={(v) => setLead('what_to_watch', v)} />
+            <h4 className="mini-title">Pull quotes (optional, up to 4)</h4>
+            <p className="field__hint">
+              Striking lines from your article. On computers they appear large in the right margin, spaced evenly down the story; on
+              phones they sit between paragraphs.
+            </p>
+            <ListEditor
+              items={content.lead_story.pull_quotes ?? []}
+              onChange={(v) => setLead('pull_quotes', v)}
+              itemLabel="Quote"
+              addLabel="Add pull quote"
+              max={4}
+              makeItem={() => ''}
+              renderItem={(q, set) => <TextArea label="Quote text (no quotation marks needed)" rows={2} value={q} onChange={set} />}
+            />
           </fieldset>
+
+          <ExplainersEditor value={content.explainers} onChange={(explainers) => setContent((c) => ({ ...c, explainers }))} />
+
+          <SidebarEditor value={content.sidebar} onChange={(sidebar) => setContent((c) => ({ ...c, sidebar }))} />
 
           <fieldset className="editor-section">
             <legend>Around the World</legend>
@@ -280,12 +387,17 @@ export default function EditorPage() {
                     <>
                       <TextField label="Headline" value={item.headline} onChange={(v) => set({ ...item, headline: v })} />
                       <TextArea label="Summary" rows={3} value={item.summary} onChange={(v) => set({ ...item, summary: v })} />
+                      <ImageUpload label="Photo (optional)" value={item.image ?? ''} onChange={(url) => set({ ...item, image: url })} />
                     </>
                   )}
                 />
               </div>
             ))}
           </fieldset>
+
+          <PromoEditor value={content.promo} onChange={(promo) => setContent((c) => ({ ...c, promo }))} />
+
+          <FeaturesEditor value={content.features} onChange={(features) => setContent((c) => ({ ...c, features }))} />
 
           <fieldset className="editor-section">
             <legend>Data &amp; Trends (optional)</legend>
@@ -315,6 +427,12 @@ export default function EditorPage() {
               )}
             />
           </fieldset>
+
+          <VideoClipsEditor value={content.video_clips} content={content} onChange={(video_clips) => setContent((c) => ({ ...c, video_clips }))} />
+
+          <PollEditor value={content.poll} onChange={(poll) => setContent((c) => ({ ...c, poll }))} />
+
+          <CtaEditor value={content.cta} onChange={(cta) => setContent((c) => ({ ...c, cta }))} />
 
           <fieldset className="editor-section">
             <legend>The Editor’s Note (optional)</legend>
@@ -356,18 +474,16 @@ export default function EditorPage() {
             />
           </fieldset>
 
-          {!isPublished && (
-            <div className="danger-zone">
-              <button type="button" className="btn btn--ghost btn--small" onClick={remove}>
-                Delete this draft
-              </button>
-            </div>
-          )}
+          <div className="danger-zone">
+            <button type="button" className="btn btn--ghost btn--small" onClick={remove} disabled={Boolean(busy)}>
+              {isPublished ? 'Delete this edition' : 'Delete this draft'}
+            </button>
+          </div>
         </div>
 
         <div className="review__preview" aria-label="Live preview">
           <div className="review__preview-label">Live preview — exactly what readers will see</div>
-          <EditionView edition={previewEdition} preview />
+          <PreviewPane edition={deferredPreview} />
         </div>
       </div>
     </div>

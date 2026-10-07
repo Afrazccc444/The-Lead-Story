@@ -1,0 +1,651 @@
+/* ═════════════════════════════════════════════════════════════
+   Printable edition (A4) — used for PDF export and paper printing.
+   ═════════════════════════════════════════════════════════════ */
+@page {
+  size: A4;
+  margin: 16mm 15mm 18mm;
+
+  @bottom-left {
+    content: 'The Lead Story';
+    font-family: 'Playfair Display Variable', Georgia, serif;
+    font-size: 8pt;
+    font-style: italic;
+    color: #66665f;
+  }
+  @bottom-right {
+    content: 'Page ' counter(page) ' of ' counter(pages);
+    font-family: 'Inter Variable', Arial, sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.06em;
+    color: #66665f;
+  }
+}
+
+@page :first {
+  @bottom-left {
+    content: none;
+  }
+}
+
+/* ── Screen view of the print page: a sheet of paper on a desk ── */
+body.print-mode {
+  background: #d9d8d2;
+}
+
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--chrome);
+  color: #d8d8d0;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+
+.print-toolbar .btn--ghost {
+  color: var(--chrome-ink);
+  border-color: #55554f;
+}
+
+.print-paper {
+  width: 210mm;
+  max-width: calc(100% - 24px);
+  margin: 24px auto 48px;
+  padding: 16mm 15mm 18mm;
+  background: #fff;
+  box-shadow: 0 2px 30px rgba(0, 0, 0, 0.18);
+}
+
+/* ── The printed edition ─────────────────────────────────────── */
+.pe {
+  color: #111;
+  font-family: var(--font-serif);
+  font-size: 10.2pt;
+  line-height: 1.5;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pe img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  border: 0.5pt solid #ccc;
+}
+
+/* Masthead */
+.pe-mast {
+  text-align: center;
+  margin-bottom: 5mm;
+}
+
+.pe-mast__strip,
+.pe-mast__dateline {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-sans);
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pe-mast__strip {
+  padding-bottom: 2mm;
+  border-bottom: 0.6pt solid #111;
+  color: #444;
+}
+
+.pe-mast__title {
+  margin: 3mm 0 0;
+  font-family: var(--font-display);
+  font-size: 46pt;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.pe-mast__tagline {
+  margin: 1.5mm 0 3mm;
+  font-style: italic;
+  font-size: 10pt;
+  color: #3a3a36;
+}
+
+.pe-mast__dateline {
+  padding: 1.6mm 0;
+  border-top: 2.4pt double #111;
+  border-bottom: 0.6pt solid #111;
+}
+
+.pe-hero {
+  margin: 0 0 5mm;
+  break-inside: avoid;
+}
+
+.pe-hero img {
+  height: 62mm;
+}
+
+.pe-hero figcaption,
+.pe-figure figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding-top: 1.2mm;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  color: #555;
+}
+
+.pe-credit {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Lead story */
+.pe-label,
+.pe-h3 {
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pe-lead {
+  text-align: left;
+}
+
+.pe-kicker {
+  display: inline-block;
+  margin-top: 1.5mm;
+  padding: 0.4mm 2mm;
+  border: 0.6pt solid var(--accent);
+  font-family: var(--font-sans);
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pe-lead__headline {
+  margin: 2.5mm 0 0;
+  font-family: var(--font-display);
+  font-size: 27pt;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.pe-lead__sub {
+  margin-top: 2mm;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13pt;
+  line-height: 1.3;
+  color: #3a3a36;
+}
+
+.pe-lead__deck {
+  margin-top: 2mm;
+  font-size: 10.5pt;
+  color: #3a3a36;
+}
+
+.pe-lead__byline {
+  margin-top: 2.5mm;
+  padding-bottom: 3mm;
+  border-bottom: 0.6pt solid #111;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pe-figure {
+  margin: 4mm 0;
+  break-inside: avoid;
+}
+
+.pe-figure img {
+  max-height: 85mm;
+}
+
+.pe-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(38mm, 1fr));
+  margin: 4mm 0;
+  border-top: 0.8pt solid #111;
+  border-bottom: 0.8pt solid #111;
+  break-inside: avoid;
+}
+
+.pe-metrics > div {
+  padding: 2.2mm 3mm;
+  border-left: 0.5pt solid #ddd;
+}
+
+.pe-metrics > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.pe-metrics dt {
+  font-family: var(--font-sans);
+  font-size: 6.5pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #66665f;
+}
+
+.pe-metrics dd {
+  margin: 0;
+}
+
+.pe-metrics__value {
+  font-family: var(--font-display);
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pe-metrics__ctx {
+  font-size: 7.5pt;
+  color: #3a3a36;
+}
+
+/* The article: two justified newspaper columns */
+.pe-body {
+  max-width: none;
+  margin-top: 4mm;
+  columns: 2;
+  column-gap: 7mm;
+  column-rule: 0.5pt solid #ccc;
+  font-size: 10.2pt;
+  line-height: 1.5;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.pe-body p + p {
+  margin-top: 0;
+  text-indent: 1.2em;
+}
+
+.pe-body h3 {
+  margin: 4mm 0 1.5mm;
+  font-size: 7.5pt;
+  break-after: avoid;
+}
+
+.pe-body h3 + p {
+  text-indent: 0;
+}
+
+/* Numbered lines in the article ("2. Handshakes…") are section titles —
+   print them as numbered subheadings rather than a small list. */
+.pe-body ol {
+  margin: 4mm 0 1.5mm;
+  padding-left: 0;
+  list-style-position: inside;
+  font-family: var(--font-display);
+  font-size: 11.5pt;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  break-after: avoid;
+}
+
+.pe-body ol li::marker {
+  color: var(--accent);
+}
+
+.pe-body ol + p {
+  text-indent: 0;
+}
+
+.pe-body ul {
+  margin: 2mm 0;
+  padding-left: 4.5mm;
+  text-align: left;
+}
+
+/* Drop cap using the browser's native initial-letter (a floated letter can
+   drift into the next column when an article is very short). */
+.pe-body > p:first-of-type::first-letter {
+  initial-letter: 3;
+  margin-right: 1.5mm;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pe-body .prose-figure-block {
+  margin: 3mm 0;
+  break-inside: avoid;
+}
+
+.pe-body .prose-figure-block img {
+  max-height: 60mm;
+}
+
+.pe .cite {
+  font-size: 0.65em;
+}
+
+.pe .cite a,
+.pe a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* Context panel */
+.pe-context {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+  margin: 6mm 0 2mm;
+  padding: 4mm 5mm;
+  background: #f4f3ee;
+  border-top: 1.6pt solid #111;
+  break-inside: avoid;
+}
+
+.pe-context > :only-child {
+  grid-column: 1 / -1;
+}
+
+.pe-small,
+.pe-small p {
+  font-size: 8.8pt;
+  line-height: 1.5;
+}
+
+.pe-watch {
+  margin: 1.5mm 0 3mm;
+  padding-left: 4.5mm;
+  font-size: 8.8pt;
+}
+
+.pe-watch li + li {
+  margin-top: 1mm;
+}
+
+.pe-links {
+  margin: 1.5mm 0 3mm;
+  padding: 0;
+  list-style: none;
+  font-size: 8.5pt;
+}
+
+.pe-links li + li {
+  margin-top: 1mm;
+}
+
+.pe-url {
+  font-family: var(--font-sans);
+  font-size: 7pt;
+  color: #66665f;
+  overflow-wrap: anywhere;
+}
+
+.pe-note {
+  font-size: 8.5pt;
+  font-style: italic;
+}
+
+/* Sections */
+.pe-section {
+  margin-top: 7mm;
+}
+
+.pe-section__title {
+  margin-bottom: 3.5mm;
+  padding-top: 1.8mm;
+  border-top: 2.4pt solid #111;
+  font-family: var(--font-display);
+  font-size: 17pt;
+  font-weight: 700;
+  break-after: avoid;
+}
+
+.pe-regions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm 7mm;
+}
+
+.pe-region {
+  break-inside: avoid;
+}
+
+.pe-region .pe-h3 {
+  padding-bottom: 1mm;
+  margin-bottom: 2mm;
+  border-bottom: 0.6pt solid #111;
+  color: #111;
+}
+
+.pe-brief {
+  break-inside: avoid;
+}
+
+.pe-brief + .pe-brief {
+  margin-top: 2.5mm;
+  padding-top: 2.5mm;
+  border-top: 0.5pt solid #ddd;
+}
+
+.pe-brief h4 {
+  font-family: var(--font-display);
+  font-size: 10.5pt;
+  line-height: 1.25;
+}
+
+.pe-brief p {
+  margin-top: 1mm;
+  font-size: 8.8pt;
+  color: #2a2a27;
+}
+
+/* Features */
+.pe-feature__grid {
+  display: grid;
+  gap: 5mm 7mm;
+}
+
+.pe-feature__grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.pe-feature__block {
+  break-inside: avoid;
+}
+
+.pe-feature__block img {
+  height: 38mm;
+  margin-bottom: 2mm;
+}
+
+.pe-feature__title {
+  margin-bottom: 1.5mm;
+  font-family: var(--font-display);
+  font-size: 11.5pt;
+}
+
+.pe-feature--tint,
+.pe-feature--dark {
+  padding: 3mm 4mm 4mm;
+  background: #f4f3ee;
+}
+
+.pe-cta-link {
+  margin-top: 1.5mm;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Data & trends */
+.pe-trends {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm 7mm;
+}
+
+.pe-trend {
+  break-inside: avoid;
+}
+
+.pe .chart__row {
+  min-height: 0;
+  padding: 0.6mm 0;
+  font-size: 7.5pt;
+}
+
+.pe .chart__track {
+  height: 3mm;
+}
+
+.pe .chart__table {
+  display: none;
+}
+
+/* Call to action & editor's note */
+.pe-cta {
+  margin-top: 7mm;
+  padding: 4mm 5mm;
+  background: var(--accent);
+  color: #fff;
+  break-inside: avoid;
+}
+
+.pe-cta h3 {
+  font-family: var(--font-display);
+  font-size: 14pt;
+}
+
+.pe-cta p {
+  margin-top: 1mm;
+  font-size: 9pt;
+}
+
+.pe-cta .pe-url {
+  color: #f1dcdc;
+}
+
+.pe-cta__action {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.pe-note-box {
+  margin: 7mm auto 0;
+  max-width: 150mm;
+  padding: 5mm 7mm;
+  border: 0.8pt solid #111;
+  outline: 0.8pt solid #111;
+  outline-offset: 1.2mm;
+  break-inside: avoid;
+}
+
+.pe-note-box h2 {
+  margin-bottom: 2.5mm;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15pt;
+}
+
+.pe-note-box p {
+  font-style: italic;
+  font-size: 9.8pt;
+}
+
+.pe-note-box p + p {
+  margin-top: 2mm;
+}
+
+.pe-note-box__sign {
+  margin-top: 3mm !important;
+  font-family: var(--font-sans);
+  font-style: normal !important;
+  font-size: 8pt !important;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Bibliography */
+.pe-biblio .sources {
+  margin-top: 8mm;
+  padding-top: 2mm;
+  border-top: 0.8pt solid #111;
+}
+
+.pe-biblio .sources__title {
+  font-size: 7.5pt;
+  margin-bottom: 2.5mm;
+}
+
+.pe-biblio .sources__list {
+  font-size: 7.8pt;
+  line-height: 1.45;
+}
+
+.pe-biblio .source {
+  padding: 0.8mm 0;
+  break-inside: avoid;
+}
+
+.pe-biblio .ref__url {
+  font-size: 7pt;
+}
+
+/* Colophon */
+.pe-colophon {
+  margin-top: 9mm;
+  padding-top: 3mm;
+  border-top: 2.4pt double #111;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 7.5pt;
+  line-height: 1.45;
+  color: #55554f;
+  break-inside: avoid; /* never split the credits across pages */
+}
+
+.pe-colophon__brand {
+  font-family: var(--font-display);
+  font-size: 13pt;
+  font-weight: 800;
+  color: #111;
+}
+
+/* ── Actual printing / PDF: only the paper ───────────────────── */
+@media print {
+  body.print-mode {
+    background: #fff;
+  }
+  .print-toolbar {
+    display: none;
+  }
+  .print-paper {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}

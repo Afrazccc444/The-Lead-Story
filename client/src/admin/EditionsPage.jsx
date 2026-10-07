@@ -3,12 +3,29 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { formatDate, formatDateTime } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
-import { EditionStatus, Notice } from './components.jsx';
+import { deleteWarning, EditionStatus, Notice } from './components.jsx';
 
 export default function EditionsPage() {
-  const { data, error, loading } = useApi('/admin/editions');
+  const { data, error, loading, reload } = useApi('/admin/editions');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [notice, setNotice] = useState(null);
+
+  async function deleteEdition(edition) {
+    if (!window.confirm(deleteWarning(edition))) return;
+    setDeleting(edition.id);
+    setNotice(null);
+    try {
+      await api.del(`/admin/editions/${edition.id}`);
+      setNotice({ tone: 'good', text: `Issue ${edition.issue_number} was deleted permanently.` });
+      await reload();
+    } catch (err) {
+      setNotice({ tone: 'error', text: err.message });
+    } finally {
+      setDeleting(null);
+    }
+  }
   const navigate = useNavigate();
   useDocumentTitle('Editions');
 
@@ -40,6 +57,11 @@ export default function EditionsPage() {
       </header>
 
       {createError && <Notice tone="error">{createError}</Notice>}
+      {notice && (
+        <Notice key={notice.text} tone={notice.tone} onClose={() => setNotice(null)}>
+          {notice.text}
+        </Notice>
+      )}
       {loading && <p className="state-message">Loading…</p>}
       {error && <Notice tone="error">{error.message}</Notice>}
 
@@ -60,6 +82,9 @@ export default function EditionsPage() {
                 <th scope="col">Status</th>
                 <th scope="col">Published</th>
                 <th scope="col">Last edited</th>
+                <th scope="col">
+                  <span className="visually-hidden">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +109,17 @@ export default function EditionsPage() {
                     )}
                   </td>
                   <td>{formatDateTime(e.updated_at)}</td>
+                  <td className="table__actions">
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--small btn--danger"
+                      onClick={() => deleteEdition(e)}
+                      disabled={deleting !== null}
+                      aria-label={`Delete issue ${e.issue_number}`}
+                    >
+                      {deleting === e.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

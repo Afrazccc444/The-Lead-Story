@@ -11,34 +11,6 @@
   flex: 1;
 }
 
-.topbar {
-  border-bottom: var(--rule-width) solid var(--rule);
-  font-family: var(--font-sans);
-  font-size: var(--step--1);
-}
-
-.topbar__inner {
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: var(--space-2) var(--gutter);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-5);
-}
-
-.topbar__link {
-  text-decoration: none;
-  color: var(--ink-3);
-  letter-spacing: 0.04em;
-  padding: var(--space-1) 0;
-  border-bottom: 2px solid transparent;
-}
-
-.topbar__link.active {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
-}
-
 .site-footer {
   margin-top: var(--space-8);
   border-top: 3px double var(--ink);
@@ -99,15 +71,23 @@
   padding: 0 var(--gutter);
   font-family: var(--font-serif);
   font-size: var(--step-0);
-  line-height: 1.6;
+  line-height: var(--lh-body);
+}
 
-  /* Scale type with the edition's own width (cqi), not the viewport,
-     so the admin preview pane renders at true proportions. */
-  --step-1: clamp(1.18rem, 1.1rem + 0.35cqi, 1.35rem);
-  --step-2: clamp(1.35rem, 1.2rem + 0.8cqi, 1.8rem);
-  --step-3: clamp(1.6rem, 1.3rem + 1.5cqi, 2.6rem);
-  --step-4: clamp(2rem, 1.4rem + 3cqi, 4.1rem);
-  --step-5: clamp(2.3rem, 1.4rem + 4.4cqi, 5.6rem);
+/* The type-scale ratio follows the edition's own width (not the window),
+   so the admin preview pane renders at true proportions. */
+.edition > * {
+  --ratio: var(--ratio-sm);
+}
+@container edition (min-width: 700px) {
+  .edition > * {
+    --ratio: var(--ratio-md);
+  }
+}
+@container edition (min-width: 1100px) {
+  .edition > * {
+    --ratio: var(--ratio-lg);
+  }
 }
 
 /* Masthead */
@@ -550,16 +530,6 @@ a.masthead__title:hover {
   color: var(--ink-2);
 }
 
-.trend__prompt {
-  margin-top: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--paper-2);
-  border-left: 2px solid var(--rule-strong);
-  font-family: var(--font-sans);
-  font-size: var(--step--1);
-  color: var(--ink-3);
-}
-
 .chart {
   margin: 0;
 }
@@ -699,39 +669,6 @@ a.masthead__title:hover {
   text-align: right;
 }
 
-.checks {
-  padding-top: var(--space-3);
-  border-top: 3px solid var(--ink);
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-
-.checks__title {
-  margin-bottom: var(--space-3);
-  font-family: var(--font-display);
-  font-size: var(--step-1);
-  color: var(--ink);
-}
-
-.checks__subtitle {
-  margin: var(--space-4) 0 var(--space-2);
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.checks__list {
-  margin: 0;
-  padding-left: 1.1em;
-}
-
-.checks__list li + li {
-  margin-top: var(--space-2);
-}
-
 /* ── Sources ────────────────────────────────────────────────── */
 .sources {
   padding-top: var(--space-3);
@@ -777,20 +714,6 @@ a.masthead__title:hover {
 .source::marker {
   font-weight: 700;
   color: var(--accent);
-}
-
-.source__outlet {
-  font-weight: 700;
-}
-
-.source__title {
-  color: var(--ink-2);
-}
-
-.source__meta {
-  display: block;
-  color: var(--ink-3);
-  font-size: 0.92em;
 }
 
 /* ── All editions ────────────────────────────────────────────── */
@@ -997,4 +920,75 @@ a.masthead__title:hover {
 
 .ref__accessed {
   color: var(--ink-3);
+}
+
+/* ── Photos ─────────────────────────────────────────────────── */
+.lead__figure {
+  max-width: 1100px;
+  margin: 0 auto var(--space-6);
+}
+
+.lead__image {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: cover;
+  border: var(--rule-width) solid var(--rule);
+}
+
+.lead__caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule-width) solid var(--rule);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.lead__credit {
+  margin-left: auto;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Photos inside the article */
+.prose-figure-block {
+  margin: 1.6em 0;
+}
+
+.prose-figure {
+  display: block;
+}
+
+.prose-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: var(--rule-width) solid var(--rule);
+}
+
+.prose-figure__caption {
+  display: block;
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule-width) solid var(--rule);
+  font-family: var(--font-sans);
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* Around the World thumbnails */
+.brief__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  margin-bottom: var(--space-3);
+  border: var(--rule-width) solid var(--rule);
 }

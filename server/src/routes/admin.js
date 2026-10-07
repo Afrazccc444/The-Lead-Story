@@ -1,3 +1,4 @@
+import { unlinkSync } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
@@ -6,6 +7,8 @@ import * as editions from '../editions.js';
 import { issueSession, requireAdmin, rotateSessions } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errors.js';
 import { passwordSchema } from './auth.js';
+import { IMAGE_URL_PATTERN, VIDEO_URL_PATTERN } from './uploads.js';
+import { clearPdfCache, draftPdf } from '../pdf.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -14,7 +17,28 @@ const idParam = z.coerce.number().int().positive();
 
 // ── Content validation ───────────────────────────────────────
 const text = (max) => z.string().max(max).default('');
-const briefingItem = z.object({ headline: text(300), summary: text(3000) });
+// Only images uploaded to this site may be used (keeps pages fast and safe).
+const imageUrl = z
+  .string()
+  .regex(IMAGE_URL_PATTERN, 'Images must be uploaded through the editor')
+  .or(z.literal(''))
+  .default('');
+const briefingItem = z.object({ headline: text(300), summary: text(3000), image: imageUrl });
+// Links readers can click: only web and email addresses (blocks "javascript:" tricks).
+const link = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((v) => v === '' || /^(https?:\/\/|mailto:)/i.test(v), 'Links must start with https:// (or mailto: for email)')
+  .default('');
+
+const featureBlock = z.object({
+  title: text(200),
+  body_markdown: text(10000),
+  image: imageUrl,
+  cta_label: text(60),
+  cta_url: link,
+});
 
 const contentSchema = z.object({
   lead_story: z.object({
@@ -23,10 +47,33 @@ const contentSchema = z.object({
     subheadline: text(600),
     deck: text(1000),
     byline: text(200),
+    image: z.object({ url: imageUrl, caption: text(500), credit: text(200) }).default({}),
     body_markdown: text(80000),
     key_metrics: z.array(z.object({ label: text(120), value: text(60), context: text(300) })).max(8).default([]),
     historical_context_markdown: text(15000),
     what_to_watch: z.array(z.string().max(500)).max(10).default([]),
+    pull_quotes: z.array(z.string().max(300)).max(4).default([]),
+    // Headline sections: each has a headline, the written response, and its own photos/videos.
+    // When present, the article text (body_markdown) is built from them automatically.
+    sections: z
+      .array(
+        z.object({
+          headline: text(300),
+          body_markdown: text(20000),
+          media: z
+            .array(
+              z.object({
+                type: z.enum(['image', 'video']),
+                url: z.string().refine((v) => IMAGE_URL_PATTERN.test(v) || VIDEO_URL_PATTERN.test(v), 'Photos and videos must be uploaded through the editor'),
+                caption: text(300),
+              }),
+            )
+            .max(8)
+            .default([]),
+        }),
+      )
+      .max(30)
+      .default([]),
   }),
   global_briefing: z.object({
     americas: z.array(briefingItem).max(15).default([]),
@@ -53,12 +100,74 @@ const contentSchema = z.object({
         title: text(500),
         publication: text(200),
         date: text(40),
-        url: text(2000),
+        url: link,
         accessed: text(40),
       }),
     )
     .max(100)
     .default([]),
+
+  // ── Layout & structural blocks ─────────────────────────────
+  hero: z.object({ image: imageUrl, alt: text(300), caption: text(300), link }).default({}),
+  features: z
+    .array(
+      z.object({
+        title: text(200),
+        layout: z.enum(['1', '2', '3']).default('2'),
+        background: z.enum(['plain', 'tint', 'dark']).default('plain'),
+        divider: z.enum(['line', 'double', 'space']).default('line'),
+        blocks: z.array(featureBlock).max(12).default([]),
+      }),
+    )
+    .max(8)
+    .default([]),
+  sidebar: z
+    .object({
+      title: text(120),
+      links: z.array(z.object({ label: text(200), url: link })).max(20).default([]),
+      sponsors: z.array(z.object({ name: text(120), url: link, logo: imageUrl })).max(10).default([]),
+      note: text(1000),
+    })
+    .default({}),
+  cta: z
+    .object({
+      heading: text(200),
+      text: text(1000),
+      button_label: text(60),
+      button_url: link,
+      style: z.enum(['solid', 'pill']).default('solid'),
+    })
+    .default({}),
+
+  // ── Tags, promotion slot and reader poll ───────────────────
+  tags: z.array(z.string().trim().min(1).max(30)).max(6).default([]),
+  explainers: z.array(z.object({ title: text(160), body_markdown: text(3000) })).max(6).default([]),
+  // Clips that play only in the video report, at a chosen story
+  video_clips: z
+    .array(
+      z.object({
+        target: text(220), // 'lead', 'section:<slug>', 'brief:<slug>' or 'feature:<slug>'
+        url: z.string().regex(VIDEO_URL_PATTERN, 'Videos must be uploaded through the editor').or(z.literal('')).default(''),
+        caption: text(200),
+        play: z.enum(['before', 'wall']).default('before'),
+      }),
+    )
+    .max(12)
+    .default([]),
+  promo: z.object({ image: imageUrl, link, label: text(120) }).default({}),
+  poll: z
+    .object({
+      question: text(200),
+      options: z.array(z.string().max(120)).max(6).default([]),
+    })
+    .default({}),
+});
+
+const SOCIAL_KEYS = ['x', 'linkedin', 'instagram', 'facebook', 'youtube', 'tiktok', 'email'];
+const siteSchema = z.object({
+  social: z.object(Object.fromEntries(SOCIAL_KEYS.map((k) => [k, link]))).default({}),
+  logo: imageUrl, // reserved logo slot in the header
+  footer_text: text(800), // contact / mailing address / legal small print
 });
 
 const editionPatch = z.object({
@@ -66,6 +175,16 @@ const editionPatch = z.object({
   editor_note: z.string().max(8000).optional(),
   issue_number: z.number().int().min(1).max(100000).optional(),
   publication_date: z.string().datetime().nullable().optional(),
+});
+
+// ── Site-wide settings (social media links) ──────────────────
+router.put('/site', (req, res) => {
+  // Merge, so saving one part of Settings (e.g. social links) never wipes another (e.g. the logo).
+  const current = JSON.parse(getSetting('site') ?? '{}');
+  const changes = siteSchema.partial().parse(req.body);
+  const site = siteSchema.parse({ ...current, ...Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)) });
+  setSetting('site', JSON.stringify(site));
+  res.json({ site });
 });
 
 // ── Editions ─────────────────────────────────────────────────
@@ -96,9 +215,29 @@ router.post('/editions/:id/unpublish', (req, res) => {
   res.json({ edition: editions.unpublish(idParam.parse(req.params.id)) });
 });
 
+/** PDF of any edition, including unpublished drafts (editor only). */
+router.get(
+  '/editions/:id/pdf',
+  asyncHandler(async (req, res) => {
+    const edition = editions.getById(idParam.parse(req.params.id));
+    if (!edition) return res.status(404).json({ error: 'Edition not found' });
+    const file = await draftPdf(edition);
+    const name = `The-Lead-Story-Issue-${edition.issue_number}${edition.status === 'published' ? '' : '-DRAFT'}.pdf`;
+    res.download(file, name, () => {
+      try {
+        unlinkSync(file); // drafts are never cached
+      } catch {
+        /* ignore */
+      }
+    });
+  }),
+);
+
 router.delete('/editions/:id', (req, res) => {
-  editions.remove(idParam.parse(req.params.id));
-  res.json({ ok: true });
+  const edition = editions.getById(idParam.parse(req.params.id));
+  const { removedImages } = editions.remove(idParam.parse(req.params.id));
+  if (edition) clearPdfCache(edition.slug);
+  res.json({ ok: true, removedImages });
 });
 
 // ── Password ─────────────────────────────────────────────────

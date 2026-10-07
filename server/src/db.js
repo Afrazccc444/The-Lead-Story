@@ -32,6 +32,15 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS editions_published_idx ON editions (status, publication_date DESC);
+
+  -- Reader poll votes: one vote per browser per edition (voter = random cookie id).
+  CREATE TABLE IF NOT EXISTS poll_votes (
+    edition_id INTEGER NOT NULL,
+    option     INTEGER NOT NULL,
+    voter      TEXT    NOT NULL,
+    created_at TEXT    NOT NULL,
+    PRIMARY KEY (edition_id, voter)
+  );
 `);
 
 export function getSetting(key) {

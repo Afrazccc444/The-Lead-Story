@@ -31,7 +31,16 @@ export default function BarChart({ points, unit, title }) {
               <span className="chart__label">{point.label}</span>
               <span className="chart__track">
                 {hasNegative && <span className="chart__zero" aria-hidden="true" />}
-                <span className="chart__bar" style={{ left: `${left}%`, width: `${Math.max(width, 0.5)}%` }} />
+                <span
+                  className="chart__bar"
+                  style={{
+                    left: `${left}%`,
+                    width: `${Math.max(width, 0.5)}%`,
+                    // Bars grow outward from the zero line when the chart scrolls into view.
+                    transformOrigin: point.value < 0 ? 'right center' : 'left center',
+                    '--i': i,
+                  }}
+                />
               </span>
               <span className="chart__value">{formatValue(point.value, unit)}</span>
             </div>

@@ -9,7 +9,7 @@ export default function GlobalBriefing({ briefing, count }) {
   if (!regions.length) return null;
 
   return (
-    <section className="briefing" aria-labelledby="briefing-title">
+    <section id="around-the-world" className="briefing" aria-labelledby="briefing-title">
       <header className="section-head">
         <h2 id="briefing-title" className="section-head__title">
           Around the World
@@ -24,9 +24,10 @@ export default function GlobalBriefing({ briefing, count }) {
             </h3>
             <ul className="region__list">
               {briefing[key]
-                .filter((item) => item.headline || item.summary)
+                .filter((item) => item.headline || item.summary || item.image)
                 .map((item, i) => (
                   <li className="brief" key={i}>
+                    {item.image && <img src={item.image} alt="" className="brief__image" loading="lazy" decoding="async" />}
                     {item.headline && <h4 className="brief__headline">{item.headline}</h4>}
                     {item.summary && (
                       <p className="brief__summary">

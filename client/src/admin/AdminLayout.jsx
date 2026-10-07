@@ -1,8 +1,9 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   async function signOut() {
     await api.post('/auth/logout').catch(() => {});
@@ -31,7 +32,9 @@ export default function AdminLayout() {
         </div>
       </header>
       <main className="admin__main">
-        <Outlet />
+        <div key={pathname} className="page-enter">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

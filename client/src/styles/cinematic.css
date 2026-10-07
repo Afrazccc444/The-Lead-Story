@@ -1,0 +1,234 @@
+/* ═════════════════════════════════════════════════════════════
+   Cinematic motion — quick, smooth, understated.
+   Only opacity/transform/clip-path are animated (cheap for the GPU),
+   durations stay under ~0.8s, and nothing uses will-change permanently.
+   Everything is switched off for "reduce motion" users
+   (base.css disables animations/transitions; Cinematic.jsx skips reveals).
+   ═════════════════════════════════════════════════════════════ */
+:root {
+  --ease-cinema: cubic-bezier(0.22, 1, 0.36, 1); /* fast start, soft landing */
+}
+
+/* ── Scroll reveals ─────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.55s ease-out,
+    transform 0.6s var(--ease-cinema);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Held back until the intro curtain starts to lift, so the page rises with it */
+body.intro-playing .reveal.is-visible {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: none;
+}
+
+/* ── Lead headline: words rise from behind a mask ───────────── */
+/* Plain text by default (admin preview, reduced motion) — the mask only
+   clips while the reveal animation runs on the reader site. */
+.lead__word-mask,
+.lead__word {
+  display: inline;
+}
+
+.lead__header.reveal .lead__word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  /* Room for descenders (g, p, y) so they are never cut off */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.lead__header.reveal .lead__word {
+  display: inline-block;
+  transform: translateY(105%);
+  transition: transform 0.7s var(--ease-cinema);
+  transition-delay: calc(120ms + var(--w, 0) * 45ms);
+}
+
+.lead__header.reveal.is-visible .lead__word {
+  transform: none;
+}
+
+body.intro-playing .lead__header.reveal .lead__word {
+  transform: translateY(105%);
+  transition: none;
+}
+
+/* ── Photos: quick curtain wipe + gentle settle ─────────────── */
+/* The wipe is applied to the <img> INSIDE the figure, never to the observed
+   figure itself: a fully clipped element never counts as "in view", so it
+   would stay hidden forever. */
+.hero.reveal,
+.lead__figure.reveal {
+  transform: none;
+  opacity: 1;
+}
+
+.hero.reveal img,
+.lead__figure.reveal img {
+  clip-path: inset(0 0 100% 0);
+  transform: scale(1.04);
+  transition:
+    clip-path 0.8s var(--ease-cinema),
+    transform 1.2s var(--ease-cinema);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.hero.reveal.is-visible img,
+.lead__figure.reveal.is-visible img {
+  clip-path: inset(0 0 0 0);
+  transform: scale(1);
+}
+
+body.intro-playing .hero.reveal.is-visible img,
+body.intro-playing .lead__figure.reveal.is-visible img {
+  clip-path: inset(0 0 100% 0);
+  transition: none;
+}
+
+/* ── Section rules draw across the page ─────────────────────── */
+.section-head.reveal:not(.feature__head) {
+  position: relative;
+  border-top-color: transparent;
+}
+
+.section-head.reveal:not(.feature__head)::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.8s var(--ease-cinema);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.section-head.reveal.is-visible:not(.feature__head)::before {
+  transform: scaleX(1);
+}
+
+/* ── Chart bars grow from the axis ──────────────────────────── */
+.trend.reveal .chart__bar {
+  transform: scaleX(0);
+  transition: transform 0.7s var(--ease-cinema);
+  transition-delay: calc(150ms + var(--i, 0) * 50ms);
+}
+
+.trend.reveal.is-visible .chart__bar {
+  transform: scaleX(1);
+}
+
+/* ── Reading progress (under the dark banner) ───────────────── */
+.reading-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 3px;
+  background: #e0625a;
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+/* ── Page changes: a quick soft fade ────────────────────────── */
+.page-enter {
+  animation: page-enter 0.35s ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Editor: panels and sections glide in on open ───────────── */
+.admin .page-head,
+.admin .panel,
+.admin .editor-section,
+.admin .table tbody tr {
+  animation: glide-in 0.4s var(--ease-cinema) both;
+}
+
+.admin .panel { animation-delay: 0.05s; }
+.admin .editor-section:nth-child(2) { animation-delay: 0.04s; }
+.admin .editor-section:nth-child(3) { animation-delay: 0.08s; }
+.admin .editor-section:nth-child(n + 4) { animation-delay: 0.12s; }
+.admin .table tbody tr:nth-child(2) { animation-delay: 0.03s; }
+.admin .table tbody tr:nth-child(3) { animation-delay: 0.06s; }
+.admin .table tbody tr:nth-child(n + 4) { animation-delay: 0.09s; }
+
+.review__preview {
+  animation: glide-in 0.45s var(--ease-cinema) 0.1s both;
+}
+
+/* Inside the live preview nothing moves while you type */
+.edition--preview * {
+  animation: none !important;
+  transition: none !important;
+}
+
+@keyframes glide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Sign-in card rises onto the page */
+.login__card {
+  animation: login-rise 0.6s var(--ease-cinema) 0.1s both;
+  box-shadow: 0 30px 60px -30px rgba(17, 17, 17, 0.35);
+}
+
+@keyframes login-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Buttons and cards respond instantly with a small lift */
+.btn,
+.cta-btn,
+.all-card {
+  transition:
+    transform 0.2s ease-out,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.btn:hover:not(:disabled),
+.cta-btn:hover {
+  transform: translateY(-1px);
+}
+
+.all-card:hover {
+  transform: translateX(4px);
+}

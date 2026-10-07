@@ -1,5 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
+import EditionActions from '../components/EditionActions.jsx';
 import EditionView from '../components/newsletter/EditionView.jsx';
+import { PreviousEditions } from '../components/reader/ReaderTools.jsx';
+import { EditionSkeleton } from '../components/ui.jsx';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
 
 export default function EditionPage() {
@@ -8,7 +11,7 @@ export default function EditionPage() {
   const edition = data?.edition;
   useDocumentTitle(edition?.lead_headline ?? null);
 
-  if (loading) return <p className="state-message">Loading edition…</p>;
+  if (loading) return <EditionSkeleton />;
   if (error) {
     return (
       <p className="state-message">
@@ -17,5 +20,11 @@ export default function EditionPage() {
       </p>
     );
   }
-  return <EditionView edition={edition} />;
+  return (
+    <>
+      <EditionActions edition={edition} />
+      <EditionView edition={edition} />
+      <PreviousEditions current={edition} />
+    </>
+  );
 }

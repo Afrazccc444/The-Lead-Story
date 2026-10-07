@@ -1,9 +1,10 @@
 /* ─────────────────────────────────────────────────────────────
    The Lead Story — design tokens
    Print-meets-digital: paper, ink, hairline rules, one accent.
+   Every size, spacing, radius and colour in the app comes from here.
    ───────────────────────────────────────────────────────────── */
 :root {
-  /* Colour */
+  /* ── Colour (light) ───────────────────────────────────────── */
   --ink: #111111;            /* primary text, rules at full weight */
   --ink-2: #3a3a36;          /* secondary text */
   --ink-3: #66665f;          /* muted metadata (≥ 4.5:1 on paper) */
@@ -15,6 +16,12 @@
   --accent: #8b0000;         /* the single editorial accent */
   --accent-ink: #ffffff;
   --accent-wash: #f4e9e6;
+  --skeleton: #e9e9e3;
+
+  /* Fixed "chrome" surfaces (top banners, player) stay dark in both themes */
+  --chrome: #111111;
+  --chrome-ink: #f9f9f6;
+  --chrome-muted: #b9b9b0;
 
   /* Status (admin only; always paired with an icon and label) */
   --good: #2f5d3a;
@@ -26,22 +33,53 @@
   --active: #1f3f6b;
   --active-wash: #e6ebf2;
 
-  /* Type */
-  --font-display: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* Category badge colours (fixed per topic) */
+  --tag-politics: #8b0000;
+  --tag-diplomacy: #1f3f6b;
+  --tag-conflict: #5a3a1a;
+  --tag-economy: #2f5d3a;
+  --tag-elections: #5b2a6e;
+  --tag-climate: #1f5c5c;
+  --tag-tech: #3a3a36;
+  --tag-default: #66665f;
 
-  /* Fluid type scale (mobile → ultra-wide) */
-  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
-  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
-  --step-1: clamp(1.18rem, 1.1rem + 0.35vw, 1.35rem);
-  --step-2: clamp(1.4rem, 1.25rem + 0.7vw, 1.8rem);
-  --step-3: clamp(1.75rem, 1.45rem + 1.4vw, 2.6rem);
-  --step-4: clamp(2.2rem, 1.6rem + 2.8vw, 4.1rem);
-  --step-5: clamp(2.6rem, 1.7rem + 4.2vw, 5.6rem);
+  /* ── Font stacks (each falls back safely on every device) ── */
+  --font-display: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', Times, serif;
+  --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-sans: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* Space */
+  /* ── Hierarchical type scale ──────────────────────────────
+     A strict modular scale: every step = previous step × ratio.
+     The ratio widens on bigger screens (minor third → major third
+     → perfect fourth) so headlines grow while body text stays calm. */
+  --ratio-sm: 1.2;
+  --ratio-md: 1.25;
+  --ratio-lg: 1.333;
+  --ratio: var(--ratio-sm);
+
+  /* ── Line-height ratios (locked) ────────────────────────── */
+  --lh-tight: 1.08;   /* display headlines */
+  --lh-heading: 1.22; /* section & item headings */
+  --lh-snug: 1.45;    /* captions, metadata, short blurbs */
+  --lh-body: 1.65;    /* running text */
+
+  /* ── Paragraph rhythm ───────────────────────────────────── */
+  --para-before: 0;
+  --para-after: 1em;
+  --heading-before: 1.8em;
+  --heading-after: 0.6em;
+
+  /* ── Kerning profiles (letter-spacing) ──────────────────── */
+  --track-display: -0.015em; /* large serif headlines */
+  --track-heading: -0.005em;
+  --track-label: 0.14em;     /* uppercase labels, kickers, metadata */
+  --track-ui: 0.02em;
+
+  /* ── Lists ──────────────────────────────────────────────── */
+  --list-indent: 1.4em;
+
+  /* ── Space ──────────────────────────────────────────────── */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -52,10 +90,103 @@
   --space-8: 4.5rem;
   --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
 
-  /* Layout */
+  /* ── Components ─────────────────────────────────────────── */
+  --radius: 0;            /* corner masking: sharp, editorial corners everywhere */
+  --radius-round: 999px;  /* only for pills and round player controls */
+  --btn-pad-y: 0.6rem;
+  --btn-pad-x: 1.1rem;
+  --btn-pad-y-sm: 0.32rem;
+  --btn-pad-x-sm: 0.7rem;
+  --transition-hover: 0.18s ease;
+
+  /* ── Layout ─────────────────────────────────────────────── */
   --page-max: 1360px;
   --measure: 66ch;
-
   --rule-width: 1px;
   --focus: 2px solid var(--accent);
+}
+
+/* The scale itself — declared wherever the ratio may change, so every
+   step is always an exact multiple of the one below it. */
+:root,
+.edition,
+.edition > * {
+  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step--1: calc(var(--step-0) / var(--ratio));
+  --step--2: calc(var(--step--1) / var(--ratio));
+  --step-1: calc(var(--step-0) * var(--ratio));
+  --step-2: calc(var(--step-1) * var(--ratio));
+  --step-3: calc(var(--step-2) * var(--ratio));
+  --step-4: calc(var(--step-3) * var(--ratio));
+  --step-5: calc(var(--step-4) * var(--ratio));
+}
+
+@media (min-width: 700px) {
+  :root {
+    --ratio: var(--ratio-md);
+  }
+}
+
+@media (min-width: 1100px) {
+  :root {
+    --ratio: var(--ratio-lg);
+  }
+}
+
+/* ── Dark theme: follows the device setting automatically ─────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ink: #ecebe5;
+    --ink-2: #c9c8c0;
+    --ink-3: #9d9c93;
+    --paper: #131312;
+    --paper-2: #1c1c1a;
+    --paper-3: #232320;
+    --rule: #2f2f2b;
+    --rule-strong: #46463f;
+    --accent: #e0625a;
+    --accent-ink: #131312;
+    --accent-wash: #3a1d1b;
+    --skeleton: #262623;
+
+    --chrome: #0b0b0a;
+    --chrome-ink: #f1f0ea;
+
+    --good: #8fc79a;
+    --good-wash: #1d2a1f;
+    --warn: #e3c07a;
+    --warn-wash: #2b2416;
+    --bad: #f08a8a;
+    --bad-wash: #3a1d1b;
+    --active: #9fb8d8;
+    --active-wash: #1b2330;
+
+    --tag-politics: #e0625a;
+    --tag-diplomacy: #8fb0dc;
+    --tag-conflict: #d6a46e;
+    --tag-economy: #8fc79a;
+    --tag-elections: #c89ad8;
+    --tag-climate: #7cc8c8;
+    --tag-tech: #c9c8c0;
+    --tag-default: #9d9c93;
+  }
+}
+
+/* Printing always uses the light paper palette, whatever the device theme. */
+@media print {
+  :root {
+    color-scheme: light;
+    --ink: #111111;
+    --ink-2: #3a3a36;
+    --ink-3: #66665f;
+    --paper: #ffffff;
+    --paper-2: #f1f1ec;
+    --paper-3: #ffffff;
+    --rule: #e5e5df;
+    --rule-strong: #cfcfc6;
+    --accent: #8b0000;
+    --accent-ink: #ffffff;
+    --accent-wash: #f4e9e6;
+  }
 }

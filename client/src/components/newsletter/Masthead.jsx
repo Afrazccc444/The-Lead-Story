@@ -12,7 +12,12 @@ export default function Masthead({ edition, linkHome = true }) {
     <header className="masthead">
       <div className="masthead__meta">
         <span>{dateLine}</span>
-        {edition && <span>Issue No. {edition.issue_number}</span>}
+        {edition && (
+          // Newsletter volume tagging: Vol. = year of publication since 2026, No. = issue number
+          <span className="volume-tag">
+            Vol. {Math.max(1, new Date(edition.publication_date ?? Date.now()).getFullYear() - 2025)} · No. {edition.issue_number}
+          </span>
+        )}
       </div>
       {linkHome ? (
         <Link className="masthead__title" to="/">

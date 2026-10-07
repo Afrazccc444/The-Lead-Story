@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { playIntro } from '../components/IntroSplash.jsx';
 import { api } from '../lib/api.js';
 import { useDocumentTitle } from '../lib/useApi.js';
 
@@ -38,6 +39,7 @@ export default function LoginPage() {
     try {
       await api.post(mode === 'setup' ? '/auth/setup' : '/auth/login', { password });
       navigate(location.state?.from ?? '/admin', { replace: true });
+      playIntro(); // welcome animation after signing in
     } catch (err) {
       setError(err.message);
       setBusy(false);

@@ -1,0 +1,289 @@
+/* ═════════════════════════════════════════════════════════════
+   Typography & branding rules — applied site-wide from the tokens.
+   (Loaded after the component styles so these rules win.)
+   ═════════════════════════════════════════════════════════════ */
+
+/* ── Hierarchy: Title → Subtitle → H1 → H2 → Body ───────────── */
+.masthead__title,
+.lead__headline {
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+}
+
+.lead__subheadline,
+.section-head__title,
+.all-card__headline,
+.page-head__title {
+  line-height: var(--lh-heading);
+  letter-spacing: var(--track-heading);
+}
+
+.brief__headline,
+.trend__title,
+.feature__title,
+.editors-note__title {
+  line-height: var(--lh-heading);
+  letter-spacing: var(--track-heading);
+}
+
+/* Uniform kerning for every uppercase label */
+.section-label,
+.kicker,
+.masthead__meta,
+.metric__label,
+.region__title,
+.aside-block__title,
+.sources__title,
+.lead__byline,
+.byline-frame,
+.all-card__meta,
+.all-group__title,
+.tag-badge {
+  letter-spacing: var(--track-label);
+}
+
+/* ── Running text: locked line-height and paragraph blocks ──── */
+.prose {
+  line-height: var(--lh-body);
+}
+
+.prose p {
+  margin: var(--para-before) 0 var(--para-after);
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose p + p {
+  margin-top: 0;
+}
+
+.prose h3 {
+  margin: var(--heading-before) 0 var(--heading-after);
+  line-height: var(--lh-heading);
+}
+
+.prose--small,
+.lead__caption,
+.prose-figure__caption,
+.hero__caption,
+.brief__summary,
+.trend__caption,
+.metric__context {
+  line-height: var(--lh-snug);
+}
+
+/* ── List indentation anchors: bullets align with the text edge ── */
+.prose ul,
+.prose ol {
+  margin: 0 0 var(--para-after);
+  padding-left: var(--list-indent);
+}
+
+.prose li {
+  padding-left: 0.2em;
+}
+
+.prose li + li {
+  margin-top: 0.35em;
+}
+
+.prose li::marker {
+  color: var(--accent);
+}
+
+/* Numbered lines used as section titles ("2. Handshakes…") read as subheads */
+.prose--lead ol {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-1);
+  line-height: var(--lh-heading);
+  margin-top: var(--heading-before);
+}
+
+.prose--lead ol li::marker {
+  font-weight: 700;
+}
+
+/* ── Quote callout containers ───────────────────────────────── */
+.prose blockquote {
+  position: relative;
+  margin: 1.6em 0;
+  padding: 0.9em 1.2em 0.9em 1.4em;
+  border-left: 4px solid var(--accent);
+  background: var(--paper-2);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--step-1);
+  line-height: var(--lh-heading);
+  color: var(--ink);
+  break-inside: avoid;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose blockquote p + p {
+  margin-top: 0.5em;
+}
+
+/* ── Caption clamping: captions stay glued to their image ───── */
+figure,
+.prose-figure {
+  display: flex;
+  flex-direction: column;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+figure > img,
+.prose-figure > img,
+.lead__figure img,
+.hero img {
+  display: block; /* no stray baseline gap between image and caption */
+  margin-bottom: 0;
+}
+
+figcaption,
+.prose-figure__caption {
+  margin-top: 0;
+}
+
+/* ── Byline separation frame ────────────────────────────────── */
+.byline-frame {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-5) auto 0;
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--rule-width) solid var(--rule-strong);
+  border-bottom: var(--rule-width) solid var(--rule-strong);
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.byline-frame strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.byline-frame__sep {
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Category colour badges */
+.tag-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  background: var(--tag-color, var(--tag-default));
+  color: var(--paper);
+  font-family: var(--font-sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+}
+
+.reading-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ── Buttons: one padding standard, one corner style ───────── */
+.btn,
+.cta-btn {
+  padding: var(--btn-pad-y) var(--btn-pad-x);
+  border-radius: var(--radius);
+}
+
+.btn--small {
+  padding: var(--btn-pad-y-sm) var(--btn-pad-x-sm);
+}
+
+.cta-btn--pill {
+  border-radius: var(--radius-round);
+}
+
+.input,
+.select,
+.textarea,
+.edition img,
+.hero__image,
+.chart__bar {
+  border-radius: var(--radius);
+}
+
+/* ── Hover accent transitions for links ────────────────────── */
+a {
+  transition: color var(--transition-hover), text-decoration-color var(--transition-hover), background-color var(--transition-hover);
+}
+
+/* ── Keyboard focus: high-contrast outline everywhere ──────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.site-bar :focus-visible,
+.admin-bar :focus-visible,
+.listen-player :focus-visible,
+.feature--dark :focus-visible,
+.cta-banner :focus-visible {
+  outline-color: #ffd36e; /* bright amber reads on dark and red surfaces */
+}
+
+/* ── Logo slot ─────────────────────────────────────────────── */
+.logo-slot {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.logo-slot img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ── Volume tagging (serial micro-text) ────────────────────── */
+.volume-tag {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Videos inside the written article */
+.prose-figure--video video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+@media print {
+  .prose-figure--video {
+    display: none;
+  }
+}

@@ -1,0 +1,312 @@
+/* ═════════════════════════════════════════════════════════════
+   Lead story layout with side rails (wide screens).
+   ≥ 1180px of edition width: sticky contents rail on the left,
+   article in the centre, notes / quotes / explainers on the right.
+   Narrower: one readable column (rails fold into the flow).
+   ═════════════════════════════════════════════════════════════ */
+
+/* ── Single-column defaults (phones, tablets, admin preview) ── */
+.lead-layout {
+  --rail-l: 200px;
+  --rail-r: 260px;
+  --rail-gap: 44px;
+}
+
+.lead-rail--left,
+.sidenote,
+.rail-pullquote {
+  display: none;
+}
+
+.lead-rail--right {
+  --rails-active: 0;
+  max-width: var(--measure);
+  margin: var(--space-6) auto 0;
+}
+
+.lead-rail__boxes {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* Inline pull quote (between paragraphs) */
+.pullquote {
+  margin: 1.8em 0;
+  padding: 0.9em 0;
+  border-top: 3px solid var(--ink);
+  border-bottom: var(--rule-width) solid var(--ink);
+  text-align: center;
+  break-inside: avoid;
+}
+
+.pullquote p {
+  margin: 0 !important;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-style: italic;
+  line-height: var(--lh-heading);
+  color: var(--ink);
+}
+
+/* Explainer box */
+.explainer {
+  padding: var(--space-4);
+  background: var(--paper-2);
+  border-left: 4px solid var(--accent);
+}
+
+.explainer__eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.explainer__title {
+  margin: var(--space-1) 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  line-height: var(--lh-heading);
+}
+
+/* ── Wide screens: three columns ─────────────────────────────── */
+@container edition (min-width: 1180px) {
+  .toc-inline {
+    display: none;
+  }
+
+  .lead-layout {
+    display: grid;
+    grid-template-columns: var(--rail-l) minmax(0, 1fr) var(--rail-r);
+    column-gap: var(--rail-gap);
+    align-items: start;
+    max-width: 1260px;
+    margin: 0 auto;
+  }
+
+  .lead-main .prose--lead {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* Photos inside the article stretch into the right margin */
+  .lead-main .prose-figure-block {
+    margin-right: calc(-1 * (var(--rail-gap) + var(--rail-r)));
+  }
+
+  .lead-main .prose-figure-block .prose-figure__caption {
+    max-width: 680px;
+  }
+
+  /* Inline pull quotes become invisible anchors; the quote shows in the margin */
+  .lead-main .pullquote {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+  }
+
+  /* Left rail: sticky navigation */
+  .lead-rail--left {
+    display: block;
+    align-self: stretch;
+  }
+
+  .lead-rail__sticky {
+    position: sticky;
+    top: 92px;
+    display: grid;
+    gap: var(--space-5);
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-right: var(--space-2);
+    scrollbar-width: thin;
+  }
+
+  .lead-rail--left .share {
+    justify-content: flex-start;
+    margin-top: 0;
+    padding-top: var(--space-3);
+  }
+
+  .lead-rail--left .share__copied {
+    min-width: 0;
+  }
+
+  /* Right rail: boxes on top, then notes/quotes placed by script */
+  .lead-rail--right {
+    --rails-active: 1;
+    position: relative;
+    max-width: none;
+    margin: 0;
+  }
+
+  .lead-rail--right [data-anchor] {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: block;
+  }
+}
+
+/* ── Rail components ─────────────────────────────────────────── */
+.rail-title {
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.rail-toc ol,
+.rail-also ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  line-height: var(--lh-snug);
+}
+
+.rail-toc li {
+  border-left: 2px solid var(--rule);
+}
+
+.rail-toc li.is-sub {
+  font-size: 0.76rem;
+}
+
+.rail-toc li.is-sub a {
+  padding-left: 1.3em;
+}
+
+.rail-toc a {
+  display: block;
+  padding: 0.3rem 0 0.3rem 0.7em;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color var(--transition-hover), border-color var(--transition-hover);
+}
+
+.rail-toc a:hover {
+  color: var(--ink);
+}
+
+.rail-toc li.is-active {
+  border-left-color: var(--accent);
+}
+
+.rail-toc li.is-active a {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.rail-also li + li {
+  border-top: var(--rule-width) solid var(--rule);
+}
+
+.rail-also a {
+  display: block;
+  padding: 0.45rem 0;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  line-height: var(--lh-heading);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.rail-also a:hover {
+  color: var(--accent);
+}
+
+/* Margin notes for sources */
+.sidenote {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--rule-width) solid var(--rule-strong);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  line-height: var(--lh-snug);
+}
+
+@container edition (min-width: 1180px) {
+  .sidenote {
+    display: flex;
+  }
+}
+
+.sidenote__num {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sidenote__body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.sidenote__title {
+  font-family: var(--font-serif);
+  font-size: 0.86rem;
+  font-style: italic;
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.sidenote__title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.sidenote__meta {
+  color: var(--ink-3);
+}
+
+/* Margin pull quotes */
+.rail-pullquote {
+  margin: 0;
+  padding: var(--space-3) 0 var(--space-3);
+  border-top: 4px solid var(--accent);
+  border-bottom: var(--rule-width) solid var(--ink);
+}
+
+.rail-pullquote blockquote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.32rem;
+  font-style: italic;
+  line-height: 1.28;
+  letter-spacing: var(--track-heading);
+  color: var(--ink);
+}
+
+/* Print & PDF: one column, no rails */
+@media print {
+  .lead-rail--left,
+  .sidenote,
+  .rail-pullquote {
+    display: none !important;
+  }
+  .lead-main .pullquote {
+    visibility: visible !important;
+    height: auto !important;
+  }
+}

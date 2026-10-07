@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Masthead from '../components/newsletter/Masthead.jsx';
-import { formatDate, formatLongDate } from '../lib/format.js';
+import { ListSkeleton, TagBadges } from '../components/ui.jsx';
+import { excerpt, formatDate, formatLongDate } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
 
 /** Group editions (already newest-first) under "September 2026"-style headings. */
@@ -33,7 +34,7 @@ export default function AllEditionsPage() {
         </p>
       </header>
 
-      {loading && <p className="state-message">Loading…</p>}
+      {loading && <ListSkeleton rows={3} />}
       {error && <p className="state-message">The editions could not be loaded. {error.message}</p>}
       {!loading && !error && editions.length === 0 && <p className="state-message">No editions have been published yet.</p>}
 
@@ -48,15 +49,22 @@ export default function AllEditionsPage() {
                 <div className="all-card__meta">
                   <time dateTime={edition.publication_date}>{formatLongDate(edition.publication_date)}</time>
                   <span>Issue No. {edition.issue_number}</span>
+                  <span className="reading-time">{edition.reading_minutes} min read</span>
                   {edition.id === latestId && <span className="all-card__latest">Latest</span>}
                 </div>
                 <div className="all-card__body">
+                  {edition.thumbnail && (
+                    <Link to={`/edition/${edition.slug}`} className="all-card__thumb" tabIndex={-1} aria-hidden="true">
+                      <img src={edition.thumbnail} alt="" decoding="async" />
+                    </Link>
+                  )}
+                  <TagBadges tags={edition.tags} />
                   {edition.kicker && <p className="all-card__kicker">{edition.kicker}</p>}
                   <h3 className="all-card__headline">
                     <Link to={`/edition/${edition.slug}`}>{edition.lead_headline}</Link>
                   </h3>
                   {edition.subheadline && <p className="all-card__sub">{edition.subheadline}</p>}
-                  {edition.deck && <p className="all-card__deck">{edition.deck}</p>}
+                  {edition.deck && <p className="all-card__deck">{excerpt(edition.deck, 150)}</p>}
                   <p className="all-card__foot">
                     {[edition.byline && `By ${edition.byline}`, edition.source_count > 0 && `${edition.source_count} source${edition.source_count === 1 ? '' : 's'}`]
                       .filter(Boolean)

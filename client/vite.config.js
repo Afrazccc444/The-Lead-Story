@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       // Forward API calls (including the admin event stream) to Express.
       '/api': { target: 'http://localhost:4000', changeOrigin: false },
+      '/uploads': { target: 'http://localhost:4000', changeOrigin: false },
     },
   },
   build: {
