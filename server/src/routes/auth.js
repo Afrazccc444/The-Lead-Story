@@ -10,12 +10,13 @@ import { IMAGE_URL_PATTERN } from './uploads.js';
 
 const router = Router();
 
+// A short cooldown: people can retry within a minute, automated guessing stays impractical.
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 60 * 1000,
   limit: 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' },
+  message: { error: 'Too many attempts. Please wait one minute and try again.' },
 });
 
 export const passwordSchema = z.string().min(8, 'Use at least 8 characters').max(200);
@@ -34,11 +35,11 @@ router.get('/status', (req, res) => {
 
 // Very few tries: the recovery key is long, and this keeps guessing hopeless.
 const recoverLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 60 * 1000,
   limit: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' },
+  message: { error: 'Too many attempts. Please wait one minute and try again.' },
 });
 
 /**
