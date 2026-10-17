@@ -1,5 +1,6 @@
 import { Poll } from '../reader/ReaderTools.jsx';
 import Bibliography from './Bibliography.jsx';
+import PublisherBadge from './PublisherBadge.jsx';
 import { CtaBanner, FeatureSections, HeroBanner, PromoSlot } from './Blocks.jsx';
 import DataTrends from './DataTrends.jsx';
 import GlobalBriefing from './GlobalBriefing.jsx';
@@ -58,6 +59,9 @@ export default function EditionView({ edition, preview = false }) {
       )}
 
       <Bibliography entries={content.bibliography} />
+
+      {/* Articles by an approved company end with their logo and name */}
+      <PublisherBadge name={edition.publisher} logo={edition.publisher_logo} suspended={edition.publisher_suspended} />
 
       <SocialLinks title="Follow The Lead Story" preview={preview} className="social--edition" />
     </div>

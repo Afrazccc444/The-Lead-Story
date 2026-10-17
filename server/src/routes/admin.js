@@ -1,19 +1,30 @@
 import { unlinkSync } from 'node:fs';
-import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
 import { getSetting, setSetting } from '../db.js';
 import * as editions from '../editions.js';
-import { issueSession, requireAdmin, rotateSessions } from '../middleware/auth.js';
+import { requireOwner, requireUser } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errors.js';
-import { passwordSchema } from './auth.js';
 import { IMAGE_URL_PATTERN, VIDEO_URL_PATTERN } from './uploads.js';
 import { clearPdfCache, draftPdf } from '../pdf.js';
 
 const router = Router();
-router.use(requireAdmin);
+router.use(requireUser);
 
 const idParam = z.coerce.number().int().positive();
+
+/**
+ * The edition with this id — if the signed-in account may work on it.
+ * Editors only ever see their own; the owner sees everything.
+ * Someone else's edition answers "not found", so ids reveal nothing.
+ */
+function editionFor(req) {
+  const edition = editions.getById(idParam.parse(req.params.id));
+  if (!edition || (req.user.role !== 'owner' && edition.user_id !== req.user.id)) {
+    throw new editions.HttpError(404, 'Edition not found');
+  }
+  return edition;
+}
 
 // ── Content validation ───────────────────────────────────────
 const text = (max) => z.string().max(max).default('');
@@ -178,7 +189,7 @@ const editionPatch = z.object({
 });
 
 // ── Site-wide settings (social media links) ──────────────────
-router.put('/site', (req, res) => {
+router.put('/site', requireOwner, (req, res) => {
   // Merge, so saving one part of Settings (e.g. social links) never wipes another (e.g. the logo).
   const current = JSON.parse(getSetting('site') ?? '{}');
   const changes = siteSchema.partial().parse(req.body);
@@ -189,38 +200,35 @@ router.put('/site', (req, res) => {
 
 // ── Editions ─────────────────────────────────────────────────
 router.get('/editions', (req, res) => {
-  res.json({ editions: editions.listAll() });
+  res.json({ editions: editions.listAll(req.user.role === 'owner' ? null : req.user.id) });
 });
 
 router.post('/editions', (req, res) => {
-  res.status(201).json({ edition: editions.create() });
+  res.status(201).json({ edition: editions.create(req.user.id) });
 });
 
 router.get('/editions/:id', (req, res) => {
-  const edition = editions.getById(idParam.parse(req.params.id));
-  if (!edition) return res.status(404).json({ error: 'Edition not found' });
-  res.json({ edition });
+  res.json({ edition: editionFor(req) });
 });
 
 router.patch('/editions/:id', (req, res) => {
-  const body = editionPatch.parse(req.body);
-  res.json({ edition: editions.update(idParam.parse(req.params.id), body) });
+  const { id } = editionFor(req);
+  res.json({ edition: editions.update(id, editionPatch.parse(req.body)) });
 });
 
 router.post('/editions/:id/publish', (req, res) => {
-  res.json({ edition: editions.publish(idParam.parse(req.params.id)) });
+  res.json({ edition: editions.publish(editionFor(req).id) });
 });
 
 router.post('/editions/:id/unpublish', (req, res) => {
-  res.json({ edition: editions.unpublish(idParam.parse(req.params.id)) });
+  res.json({ edition: editions.unpublish(editionFor(req).id) });
 });
 
 /** PDF of any edition, including unpublished drafts (editor only). */
 router.get(
   '/editions/:id/pdf',
   asyncHandler(async (req, res) => {
-    const edition = editions.getById(idParam.parse(req.params.id));
-    if (!edition) return res.status(404).json({ error: 'Edition not found' });
+    const edition = editionFor(req);
     const file = await draftPdf(edition);
     const name = `The-Lead-Story-Issue-${edition.issue_number}${edition.status === 'published' ? '' : '-DRAFT'}.pdf`;
     res.download(file, name, () => {
@@ -234,25 +242,10 @@ router.get(
 );
 
 router.delete('/editions/:id', (req, res) => {
-  const edition = editions.getById(idParam.parse(req.params.id));
-  const { removedImages } = editions.remove(idParam.parse(req.params.id));
-  if (edition) clearPdfCache(edition.slug);
+  const edition = editionFor(req);
+  const { removedImages } = editions.remove(edition.id);
+  clearPdfCache(edition.slug);
   res.json({ ok: true, removedImages });
 });
-
-// ── Password ─────────────────────────────────────────────────
-router.post(
-  '/password',
-  asyncHandler(async (req, res) => {
-    const { current, next } = z.object({ current: z.string().max(200), next: passwordSchema }).parse(req.body);
-    if (!(await bcrypt.compare(current, getSetting('password_hash')))) {
-      return res.status(401).json({ error: 'Your current password is incorrect' });
-    }
-    setSetting('password_hash', await bcrypt.hash(next, 12));
-    rotateSessions(); // sign out every other device
-    issueSession(res); // keep this browser signed in
-    res.json({ ok: true });
-  }),
-);
 
 export default router;

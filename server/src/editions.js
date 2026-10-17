@@ -47,16 +47,27 @@ function toEdition(row) {
   return { ...row, content: JSON.parse(row.content) };
 }
 
+// The publishing account's public name. House editions (by the owner) carry no
+// separate credit; editions by approved publishers show their organisation —
+// and, if the owner has suspended that account, a warning to readers.
+const PUBLISHER = "CASE WHEN u.role = 'editor' THEN COALESCE(NULLIF(u.organisation, ''), NULLIF(u.display_name, ''), u.username) END AS publisher, CASE WHEN u.role = 'editor' THEN NULLIF(u.logo, '') END AS publisher_logo, CASE WHEN u.role = 'editor' AND u.status = 'disabled' THEN 1 ELSE 0 END AS publisher_suspended";
+const WITH_PUBLISHER = `SELECT e.*, ${PUBLISHER} FROM editions e LEFT JOIN users u ON u.id = e.user_id`;
+
 const now = () => new Date().toISOString();
 const slugFor = (issue) => `issue-${issue}`;
 
-export function listAll() {
+/** Editions for the Editor's desk: one account's own, or every edition (userId = null, for the owner). */
+export function listAll(userId = null) {
   return db
     .prepare(
-      `SELECT id, issue_number, slug, status, publication_date, lead_headline, subheadline, updated_at
-         FROM editions ORDER BY issue_number DESC`,
+      `SELECT e.id, e.issue_number, e.slug, e.status, e.publication_date, e.lead_headline, e.subheadline, e.updated_at,
+              e.user_id, u.display_name AS author_name, u.organisation AS author_org, u.username AS author_username,
+              (SELECT COALESCE(SUM(v.count), 0) FROM edition_views v WHERE v.edition_id = e.id) AS views
+         FROM editions e LEFT JOIN users u ON u.id = e.user_id
+        WHERE ?1 IS NULL OR e.user_id = ?1
+        ORDER BY e.issue_number DESC`,
     )
-    .all();
+    .all(userId);
 }
 
 /** Markdown / rich text → plain words (for word counts, search snippets and excerpts). */
@@ -107,9 +118,9 @@ function storyTitles(content = {}) {
 export function listPublished() {
   const rows = db
     .prepare(
-      `SELECT id, issue_number, slug, publication_date, lead_headline, subheadline, editor_note, content
-         FROM editions WHERE status = 'published'
-        ORDER BY publication_date DESC, issue_number DESC`,
+      `SELECT e.id, e.issue_number, e.slug, e.publication_date, e.lead_headline, e.subheadline, e.editor_note, e.content, ${PUBLISHER}
+         FROM editions e LEFT JOIN users u ON u.id = e.user_id WHERE e.status = 'published'
+        ORDER BY e.publication_date DESC, e.issue_number DESC`,
     )
     .all();
   return rows.map(({ content, editor_note, ...row }) => {
@@ -159,25 +170,28 @@ export function getById(id) {
 }
 
 export function getPublishedBySlug(slug) {
-  return toEdition(db.prepare(`SELECT * FROM editions WHERE slug = ? AND status = 'published'`).get(slug));
+  return toEdition(db.prepare(`${WITH_PUBLISHER} WHERE e.slug = ? AND e.status = 'published'`).get(slug));
 }
 
 export function getLatestPublished() {
   return toEdition(
     db
-      .prepare(`SELECT * FROM editions WHERE status = 'published' ORDER BY publication_date DESC, issue_number DESC LIMIT 1`)
+      .prepare(
+        `${WITH_PUBLISHER} WHERE e.status = 'published' AND NOT COALESCE(u.role = 'editor' AND u.status = 'disabled', 0)
+          ORDER BY e.publication_date DESC, e.issue_number DESC LIMIT 1`,
+      )
       .get(),
   );
 }
 
-export function create() {
+export function create(userId) {
   const next = (db.prepare('SELECT MAX(issue_number) AS n FROM editions').get().n ?? 0) + 1;
   const stamp = now();
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO editions (issue_number, slug, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO editions (issue_number, slug, content, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .run(next, slugFor(next), JSON.stringify(emptyContent()), stamp, stamp);
+    .run(next, slugFor(next), JSON.stringify(emptyContent()), userId, stamp, stamp);
   return getById(Number(lastInsertRowid));
 }
 
@@ -263,14 +277,20 @@ export function remove(id) {
   // Published or draft: deleting removes it from the site and the library for good.
   db.prepare('DELETE FROM editions WHERE id = ?').run(id);
   db.prepare('DELETE FROM poll_votes WHERE edition_id = ?').run(id);
+  db.prepare('DELETE FROM edition_views WHERE edition_id = ?').run(id);
 
   // Also delete its uploaded photos, unless another edition still uses them.
   // Photos and video clips used only by this edition are deleted with it.
   const images = new Set(JSON.stringify(edition.content).match(/\/uploads\/[a-f0-9-]{36}\.(?:jpg|png|gif|webp|mp4|webm|mov)/g) ?? []);
-  const stillUsed = db.prepare('SELECT 1 FROM editions WHERE content LIKE ? LIMIT 1');
+  // …or it is a company logo or the site's own logo.
+  const stillUsed = db.prepare(
+    `SELECT 1 FROM editions WHERE content LIKE ?1
+     UNION ALL SELECT 1 FROM users WHERE logo = ?2
+     UNION ALL SELECT 1 FROM settings WHERE value LIKE ?1 LIMIT 1`,
+  );
   let removedImages = 0;
   for (const url of images) {
-    if (stillUsed.get(`%${url}%`)) continue;
+    if (stillUsed.get(`%${url}%`, url)) continue;
     try {
       unlinkSync(path.join(uploadsDir, path.basename(url)));
       removedImages++;

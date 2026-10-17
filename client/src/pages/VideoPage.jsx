@@ -1,8 +1,10 @@
 import { Link, useParams } from 'react-router-dom';
 import BroadcastPlayer from '../broadcast/BroadcastPlayer.jsx';
 import { EditionSkeleton } from '../components/ui.jsx';
+import SuspendedGate from '../components/reader/SuspendedGate.jsx';
 import { formatLongDate } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
+import { useTrackView } from '../lib/views.js';
 
 /** One edition's video report (loaded separately, so the 3D engine only downloads here). */
 export default function VideoPage() {
@@ -10,6 +12,7 @@ export default function VideoPage() {
   const { data, error, loading } = useApi(`/editions/${encodeURIComponent(slug)}`);
   const edition = data?.edition;
   useDocumentTitle(edition ? `Video: ${edition.lead_headline}` : 'Video report');
+  useTrackView(edition?.slug, 'video');
 
   if (loading) return <EditionSkeleton />;
   if (error) {
@@ -21,18 +24,20 @@ export default function VideoPage() {
   }
 
   return (
-    <div className="video-page">
-      <header className="video-page__head">
-        <p className="video-meta">
-          <span className="beta-badge">Pre-beta</span> Video report · Issue {edition.issue_number} · {formatLongDate(edition.publication_date)}
+    <SuspendedGate key={edition.slug} edition={edition}>
+      <div className="video-page">
+        <header className="video-page__head">
+          <p className="video-meta">
+            <span className="beta-badge">Pre-beta</span> Video report · Issue {edition.issue_number} · {formatLongDate(edition.publication_date)}
+          </p>
+          <h1 className="video-page__title">{edition.lead_headline}</h1>
+        </header>
+        <BroadcastPlayer edition={edition} />
+        <p className="video-page__links">
+          <Link to={`/edition/${edition.slug}`}>Read the full edition and its sources →</Link>
+          <Link to="/videos">All video reports</Link>
         </p>
-        <h1 className="video-page__title">{edition.lead_headline}</h1>
-      </header>
-      <BroadcastPlayer edition={edition} />
-      <p className="video-page__links">
-        <Link to={`/edition/${edition.slug}`}>Read the full edition and its sources →</Link>
-        <Link to="/videos">All video reports</Link>
-      </p>
-    </div>
+      </div>
+    </SuspendedGate>
   );
 }

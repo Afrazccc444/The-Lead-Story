@@ -35,6 +35,7 @@ export default function PublicLayout() {
             </NavLink>
             <NavLink to="/all">All</NavLink>
             <NavLink to="/videos">Video Reports</NavLink>
+            <NavLink to="/publish">Publish with us</NavLink>
           </nav>
           <SearchBox />
           <SocialLinks className="social--bar" />
@@ -57,6 +58,9 @@ export default function PublicLayout() {
           <p className="site-footer__disclosure">
             Every edition is researched and written by our student writers. Sources are listed in each edition’s
             bibliography — we encourage you to read the originals.
+          </p>
+          <p>
+            Have truthful reporting but no platform? <Link to="/publish">Publish with us →</Link>
           </p>
           {/* Regulatory zone: contact / mailing address / legal text from Settings */}
           <div className="site-footer__legal">

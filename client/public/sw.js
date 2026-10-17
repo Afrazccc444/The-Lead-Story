@@ -5,7 +5,7 @@
      is kept so editions you have opened still load without internet.
    - The admin area, sign-in, PDF downloads and anything that changes data
      are never cached. */
-const CACHE = 'lead-story-v3';
+const CACHE = 'lead-story-v4';
 const SHELL = ['/', '/index.html', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -22,7 +22,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // Video clips are too large to store offline, so they always stream from the server.
-const NEVER = /^\/api\/(admin|auth|print)|\/pdf(\?|$)|\/poll$|\.(mp4|webm|mov)$/;
+const NEVER = /^\/api\/(admin|auth|print|owner|views|requests)|\/pdf(\?|$)|\/poll$|\.(mp4|webm|mov)$/;
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);

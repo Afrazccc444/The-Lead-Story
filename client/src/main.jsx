@@ -12,6 +12,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/newsletter.css';
 import './styles/admin.css';
+import './styles/accounts.css';
 import './styles/blocks.css';
 import './styles/intro.css';
 import './styles/reader.css';

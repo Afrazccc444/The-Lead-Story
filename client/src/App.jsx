@@ -20,6 +20,15 @@ const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'));
 const EditionsPage = lazy(() => import('./admin/EditionsPage.jsx'));
 const EditorPage = lazy(() => import('./admin/EditorPage.jsx'));
 const SettingsPage = lazy(() => import('./admin/SettingsPage.jsx'));
+const InvitePage = lazy(() => import('./admin/InvitePage.jsx'));
+// The owner's Admin app (accounts, requests, analytics) — also loaded only on demand.
+const OwnerLayout = lazy(() => import('./owner/OwnerLayout.jsx'));
+const OverviewPage = lazy(() => import('./owner/OverviewPage.jsx'));
+const RequestsPage = lazy(() => import('./owner/RequestsPage.jsx'));
+const AccountsPage = lazy(() => import('./owner/AccountsPage.jsx'));
+const ArticlesPage = lazy(() => import('./owner/ArticlesPage.jsx'));
+const PublishingPage = lazy(() => import('./owner/PublishingPage.jsx'));
+const PublishPage = lazy(() => import('./pages/PublishPage.jsx'));
 const PrintPage = lazy(() => import('./print/PrintPage.jsx'));
 // The 3D newsroom (and its 3D engine) only downloads when someone opens a video.
 const VideoPage = lazy(() => import('./pages/VideoPage.jsx'));
@@ -50,12 +59,14 @@ function AppRoutes() {
         <Route path="search" element={<SearchPage />} />
         <Route path="videos" element={<VideosPage />} />
         <Route path="videos/:slug" element={<VideoPage />} />
+        <Route path="publish" element={<PublishPage />} />
       </Route>
 
       <Route path="print/draft/:token" element={<PrintPage />} />
       <Route path="print/:slug" element={<PrintPage />} />
 
       <Route path="admin/login" element={<LoginPage />} />
+      <Route path="admin/invite/:token" element={<InvitePage />} />
       <Route
         path="admin"
         element={
@@ -67,6 +78,21 @@ function AppRoutes() {
         <Route index element={<EditionsPage />} />
         <Route path="editions/:id" element={<EditorPage />} />
         <Route path="settings" element={<SettingsPage />} />
+      </Route>
+
+      <Route
+        path="owner"
+        element={
+          <RequireAdmin owner>
+            <OwnerLayout />
+          </RequireAdmin>
+        }
+      >
+        <Route index element={<OverviewPage />} />
+        <Route path="requests" element={<RequestsPage />} />
+        <Route path="accounts" element={<AccountsPage />} />
+        <Route path="articles" element={<ArticlesPage />} />
+        <Route path="publishing" element={<PublishingPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

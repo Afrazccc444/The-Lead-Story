@@ -5,11 +5,13 @@ import Masthead from '../components/newsletter/Masthead.jsx';
 import { PreviousEditions } from '../components/reader/ReaderTools.jsx';
 import { EditionSkeleton } from '../components/ui.jsx';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
+import { useTrackView } from '../lib/views.js';
 
 export default function HomePage() {
   const { data, error, loading } = useApi('/editions/latest');
   const edition = data?.edition;
   useDocumentTitle(edition?.lead_headline ?? null);
+  useTrackView(edition?.slug, 'read');
 
   if (loading) return <EditionSkeleton />;
 

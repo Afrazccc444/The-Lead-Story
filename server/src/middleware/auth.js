@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { getSetting, setSetting } from '../db.js';
+import { getUser } from '../users.js';
 
 export const SESSION_COOKIE = 'tls_session';
 
@@ -16,17 +17,9 @@ function jwtSecret() {
   return secret;
 }
 
-/** Changing the password rotates this value, which signs out every old session. */
-function sessionVersion() {
-  return getSetting('session_version') ?? '1';
-}
-
-export function rotateSessions() {
-  setSetting('session_version', String(Number(sessionVersion()) + 1));
-}
-
-export function issueSession(res) {
-  const token = jwt.sign({ role: 'admin', v: sessionVersion() }, jwtSecret(), { expiresIn: `${config.sessionDays}d` });
+/** Signs this browser in as `user`. Changing the password or suspending the account invalidates it. */
+export function issueSession(res, user) {
+  const token = jwt.sign({ uid: user.id, v: user.session_version }, jwtSecret(), { expiresIn: `${config.sessionDays}d` });
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'strict',
@@ -40,18 +33,32 @@ export function clearSession(res) {
   res.clearCookie(SESSION_COOKIE, { path: '/', sameSite: 'strict', secure: config.isProd, httpOnly: true });
 }
 
-export function isAuthenticated(req) {
+/** The signed-in, active account for this request — or null. Checked against the database every time. */
+export function sessionUser(req) {
+  if (req.user !== undefined) return req.user;
+  req.user = null;
   const token = req.cookies?.[SESSION_COOKIE];
-  if (!token) return false;
+  if (!token) return null;
   try {
     const payload = jwt.verify(token, jwtSecret());
-    return payload.role === 'admin' && payload.v === sessionVersion();
+    const user = getUser(payload.uid);
+    if (user && user.status === 'active' && user.session_version === payload.v) req.user = user;
   } catch {
-    return false;
+    /* expired or tampered */
   }
+  return req.user;
 }
 
-export function requireAdmin(req, res, next) {
-  if (!isAuthenticated(req)) return res.status(401).json({ error: 'Please sign in' });
+/** Any signed-in account (owner or editor): the Editor's desk. */
+export function requireUser(req, res, next) {
+  if (!sessionUser(req)) return res.status(401).json({ error: 'Please sign in' });
+  next();
+}
+
+/** The owner only: the Admin app. */
+export function requireOwner(req, res, next) {
+  const user = sessionUser(req);
+  if (!user) return res.status(401).json({ error: 'Please sign in' });
+  if (user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can do this' });
   next();
 }

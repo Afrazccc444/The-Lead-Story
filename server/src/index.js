@@ -7,8 +7,10 @@ import helmet from 'helmet';
 import { config } from './config.js';
 import { db } from './db.js';
 import { errorHandler, notFound } from './middleware/errors.js';
+import { ensureKey } from './recovery.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
+import ownerRoutes from './routes/owner.js';
 import publicRoutes from './routes/public.js';
 import uploadRoutes, { uploadsDir, videoRouter } from './routes/uploads.js';
 
@@ -46,6 +48,7 @@ app.use('/api/admin/images', uploadRoutes);
 app.use('/api/admin/videos', videoRouter);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/owner', ownerRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', notFound);
 
@@ -71,6 +74,8 @@ app.use(errorHandler);
 
 const server = app.listen(config.port, () => {
   console.info(`The Lead Story server: http://localhost:${config.port}  (data: ${config.dataDir})`);
+  // The owner's recovery key lives only on this computer (see recovery.js).
+  console.info(`Owner recovery key: ${ensureKey()}`);
 });
 
 function shutdown() {

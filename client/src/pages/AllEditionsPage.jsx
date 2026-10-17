@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Masthead from '../components/newsletter/Masthead.jsx';
+import { SuspendedChip } from '../components/reader/SuspendedGate.jsx';
 import { ListSkeleton, TagBadges } from '../components/ui.jsx';
 import { excerpt, formatDate, formatLongDate } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
@@ -20,7 +21,8 @@ export default function AllEditionsPage() {
   const { data, error, loading } = useApi('/editions');
   useDocumentTitle('All editions');
   const editions = data?.editions ?? [];
-  const latestId = editions[0]?.id;
+  // Same as the front page: the newest edition that isn't from a suspended account.
+  const latestId = editions.find((e) => !e.publisher_suspended)?.id;
 
   return (
     <div className="page-narrow">
@@ -51,6 +53,7 @@ export default function AllEditionsPage() {
                   <span>Issue No. {edition.issue_number}</span>
                   <span className="reading-time">{edition.reading_minutes} min read</span>
                   {edition.id === latestId && <span className="all-card__latest">Latest</span>}
+                  {Boolean(edition.publisher_suspended) && <SuspendedChip />}
                 </div>
                 <div className="all-card__body">
                   {edition.thumbnail && (

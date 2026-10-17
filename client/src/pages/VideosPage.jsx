@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Masthead from '../components/newsletter/Masthead.jsx';
+import { SuspendedChip } from '../components/reader/SuspendedGate.jsx';
 import { ListSkeleton, TagBadges } from '../components/ui.jsx';
 import { excerpt, formatDate } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
@@ -39,6 +40,7 @@ export default function VideosPage() {
             <span className="video-meta">
               {formatDate(latest.publication_date)} · about {Math.max(2, Math.round(latest.reading_minutes * 1.5))} min
             </span>
+            {Boolean(latest.publisher_suspended) && <SuspendedChip />}
             <span className="video-hero__title">{latest.lead_headline}</span>
             {latest.deck && <span className="video-hero__deck">{excerpt(latest.deck, 150)}</span>}
             <TagBadges tags={latest.tags} />
@@ -63,6 +65,7 @@ export default function VideosPage() {
                   <span className="video-meta">
                     {formatDate(e.publication_date)} · about {Math.max(2, Math.round(e.reading_minutes * 1.5))} min
                   </span>
+                  {Boolean(e.publisher_suspended) && <SuspendedChip />}
                   <span className="video-card__title">{excerpt(e.lead_headline, 90)}</span>
                 </Link>
               </li>

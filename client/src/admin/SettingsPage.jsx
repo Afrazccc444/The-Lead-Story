@@ -5,6 +5,8 @@ import { useDocumentTitle } from '../lib/useApi.js';
 import { setSiteCache, useSite } from '../lib/useSite.js';
 import { Notice } from './components.jsx';
 import { ImageUpload, TextArea } from './fields.jsx';
+import PublisherBadge from '../components/newsletter/PublisherBadge.jsx';
+import { accountName, useSessionUser } from './session.js';
 
 /** Logo (fixed slot in the top banner) and footer small print. */
 function BrandingSettings() {
@@ -129,12 +131,48 @@ function SocialSettings() {
   );
 }
 
+/** A publisher's company logo: shown in a badge at the bottom of each of their articles. */
+function CompanySettings({ user }) {
+  const [logo, setLogo] = useState(user.logo ?? '');
+  const [message, setMessage] = useState(null);
+
+  async function save(next) {
+    setMessage(null);
+    try {
+      const { user: saved } = await api.put('/auth/profile', { logo: next });
+      setLogo(saved.logo);
+      setMessage({ tone: 'good', text: next ? 'Logo saved. It now appears on all your articles.' : 'Logo removed.' });
+    } catch (err) {
+      setMessage({ tone: 'error', text: err.message });
+    }
+  }
+
+  return (
+    <section className="panel settings-panel">
+      <h2 className="panel__title">Your company</h2>
+      <p className="panel__intro">
+        Upload your company logo. Every article you publish ends with this badge. Your company name is set by The Lead
+        Story — contact us to change it.
+      </p>
+      {message && (
+        <Notice key={message.text} tone={message.tone} onClose={() => setMessage(null)}>
+          {message.text}
+        </Notice>
+      )}
+      <ImageUpload label="Company logo" value={logo} onChange={save} hint="A square or wide logo on a plain background works best (PNG, JPG or WebP)." />
+      <p className="mini-title">Preview</p>
+      <PublisherBadge name={accountName(user)} logo={logo} />
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
+  const user = useSessionUser();
   useDocumentTitle('Settings');
 
   async function submit(event) {
@@ -146,7 +184,7 @@ export default function SettingsPage() {
     setBusy(true);
     setMessage(null);
     try {
-      await api.post('/admin/password', { current, next });
+      await api.post('/auth/password', { current, next });
       setCurrent('');
       setNext('');
       setConfirm('');
@@ -166,8 +204,10 @@ export default function SettingsPage() {
           <h1 className="page-head__title">Settings</h1>
         </div>
       </header>
-      <BrandingSettings />
-      <SocialSettings />
+      {/* The site's logo, footer and social links belong to the owner. */}
+      {user?.role === 'owner' && <BrandingSettings />}
+      {user?.role === 'owner' && <SocialSettings />}
+      {user?.role === 'editor' && <CompanySettings user={user} />}
       <section className="panel settings-panel">
         <h2 className="panel__title">Change password</h2>
         <form onSubmit={submit}>

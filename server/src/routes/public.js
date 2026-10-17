@@ -7,6 +7,8 @@ import { db, getSetting } from '../db.js';
 import * as editions from '../editions.js';
 import { asyncHandler } from '../middleware/errors.js';
 import { editionIdForPass, editionPdf } from '../pdf.js';
+import * as analytics from '../analytics.js';
+import * as requests from '../requests.js';
 
 const router = Router();
 
@@ -22,6 +24,9 @@ function present(edition) {
     editor_note: edition.editor_note,
     content: edition.content,
     reading_minutes: editions.readingMinutes(edition.content, edition.editor_note),
+    publisher: edition.publisher ?? null, // the approved publisher's name (none for house editions)
+    publisher_logo: edition.publisher_logo ?? null,
+    publisher_suspended: Boolean(edition.publisher_suspended), // readers are warned before reading
   };
 }
 
@@ -134,6 +139,46 @@ router.post('/editions/:slug/poll', voteLimiter, (req, res) => {
     new Date().toISOString(),
   );
   res.json(pollResults(edition, voter));
+});
+
+// ── Reader analytics (anonymous view counts) ─────────────────
+const viewLimiter = rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
+router.post('/views', viewLimiter, (req, res) => {
+  const { slug, kind } = z.object({ slug: z.string().max(80), kind: z.enum(['read', 'video']) }).parse(req.body);
+  analytics.recordView(slug, kind);
+  res.status(204).end();
+});
+
+// ── "Publish with us" ────────────────────────────────────────
+router.get('/publishing', (req, res) => {
+  const { intro, terms } = requests.getPublishing();
+  res.json({ publishing: { intro, terms } });
+});
+
+const requestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this connection. Please try again in an hour.' },
+});
+const field = (max) => z.string().trim().max(max).default('');
+router.post('/requests', requestLimiter, (req, res) => {
+  const body = z
+    .object({
+      name: z.string().trim().min(2, 'Please enter your name').max(120),
+      email: z.string().trim().email('Please enter a valid email address').max(200),
+      organisation: field(160),
+      about: z.string().trim().min(10, 'Please tell us a little about yourself (at least 10 characters)').max(4000),
+      message: z.string().trim().min(20, 'Please describe your request (at least 20 characters)').max(4000),
+      agreed: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms and conditions' }) }),
+      // Hidden field real people never fill in: catches automated spam.
+      fax: field(200),
+    })
+    .parse(req.body);
+  if (body.fax) return res.status(201).json({ ok: true });
+  requests.createRequest(body);
+  res.status(201).json({ ok: true });
 });
 
 export default router;

@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { formatDate, readingMinutes } from '../../lib/format.js';
 import { CountUp } from '../Cinematic.jsx';
 import { ShareCluster } from '../reader/ReaderTools.jsx';
+import { SuspendedChip } from '../reader/SuspendedGate.jsx';
 import { TagBadges } from '../ui.jsx';
 import { CitedText } from './Prose.jsx';
 import LeadLayout from './LeadLayout.jsx';
@@ -45,6 +46,16 @@ export default function LeadStory({ lead, sidebar, count, edition, still = false
             </span>
           )}
           {lead.byline && <span className="byline-frame__sep" aria-hidden="true" />}
+          {/* Articles by approved outside publishers name them clearly */}
+          {edition?.publisher && (
+            <>
+              <span className="publisher-credit">
+                Published by <strong>{edition.publisher}</strong>
+              </span>
+              {edition.publisher_suspended && <SuspendedChip />}
+              <span className="byline-frame__sep" aria-hidden="true" />
+            </>
+          )}
           <time dateTime={edition?.publication_date ?? undefined}>
             {edition?.publication_date ? formatDate(edition.publication_date) : 'Draft'}
           </time>

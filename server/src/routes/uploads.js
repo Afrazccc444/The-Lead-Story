@@ -4,7 +4,7 @@ import { rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import express, { Router } from 'express';
 import { config } from '../config.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireUser } from '../middleware/auth.js';
 
 export const uploadsDir = path.join(config.dataDir, 'uploads');
 mkdirSync(uploadsDir, { recursive: true });
@@ -27,7 +27,7 @@ const router = Router();
 /** POST /api/admin/images — body is the raw image file. Returns { url }. */
 router.post(
   '/',
-  requireAdmin,
+  requireUser,
   express.raw({ type: 'image/*', limit: '12mb' }),
   (req, res) => {
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
@@ -58,7 +58,7 @@ function detectVideo(buf) {
  * disk (never held in memory), checked by its first bytes, max 200 MB.
  */
 export const videoRouter = Router();
-videoRouter.post('/', requireAdmin, (req, res, next) => {
+videoRouter.post('/', requireUser, (req, res, next) => {
   const declared = Number(req.get('content-length') || 0);
   if (declared > MAX_VIDEO_BYTES) return res.status(413).json({ error: 'Videos can be up to 200 MB. Try exporting a shorter or smaller clip.' });
 

@@ -4,6 +4,7 @@ import { api } from '../lib/api.js';
 import { formatDate, formatDateTime } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
 import { deleteWarning, EditionStatus, Notice } from './components.jsx';
+import { useSessionUser } from './session.js';
 
 export default function EditionsPage() {
   const { data, error, loading, reload } = useApi('/admin/editions');
@@ -27,6 +28,7 @@ export default function EditionsPage() {
     }
   }
   const navigate = useNavigate();
+  const isOwner = useSessionUser()?.role === 'owner';
   useDocumentTitle('Editions');
 
   async function createEdition() {
@@ -79,6 +81,7 @@ export default function EditionsPage() {
               <tr>
                 <th scope="col">Issue</th>
                 <th scope="col">Lead headline</th>
+                {isOwner && <th scope="col">Publisher</th>}
                 <th scope="col">Status</th>
                 <th scope="col">Published</th>
                 <th scope="col">Last edited</th>
@@ -96,6 +99,7 @@ export default function EditionsPage() {
                   <td className="table__headline">
                     <Link to={`/admin/editions/${e.id}`}>{e.lead_headline || <span className="muted">Untitled draft</span>}</Link>
                   </td>
+                  {isOwner && <td>{e.author_org || e.author_name || e.author_username || '—'}</td>}
                   <td>
                     <EditionStatus status={e.status} />
                   </td>
