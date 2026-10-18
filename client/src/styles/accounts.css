@@ -473,13 +473,21 @@
   justify-self: start;
 }
 
-/* Spam trap: invisible to people, still in the page for bots */
+/* Spam trap: invisible to people, still in the page for bots.
+   Clipped in place (not pushed far off-screen, which confuses some phone browsers). */
+.publish-form {
+  position: relative;
+}
+
 .publish-form__trap {
   position: absolute;
-  left: -9999px;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .publish-done {
