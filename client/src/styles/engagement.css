@@ -1,0 +1,95 @@
+/* Views and likes under each article, and the owner's like log. */
+.engagement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5);
+  max-width: 40rem;
+  margin: var(--space-6) auto;
+  padding: var(--space-4) var(--gutter);
+  border-top: var(--rule-width) solid var(--rule-strong);
+  border-bottom: var(--rule-width) solid var(--rule-strong);
+  font-family: var(--font-sans);
+}
+
+.engagement__views {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-2);
+}
+
+.engagement__views strong {
+  color: var(--ink);
+}
+
+.engagement__like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-round);
+  background: var(--paper-3);
+  color: var(--accent);
+  font: 600 0.95rem var(--font-sans);
+  cursor: pointer;
+  transition: background-color var(--transition-hover), transform 120ms ease;
+}
+
+.engagement__like:hover {
+  background: var(--accent-wash);
+}
+
+.engagement__like:active {
+  transform: scale(0.96);
+}
+
+.engagement__like.is-liked {
+  background: var(--accent);
+  color: #fff;
+}
+
+.engagement__like:disabled {
+  cursor: progress;
+}
+
+.engagement__note,
+.engagement__error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.78rem;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.engagement__error {
+  color: var(--bad);
+}
+
+@media print {
+  .engagement {
+    display: none;
+  }
+}
+
+/* Admin app: the list of likes under an article */
+.like-log > td {
+  background: var(--paper-2);
+}
+
+.like-log__title {
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.like-log__table td {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.like-log__ip {
+  font-family: var(--font-mono);
+}

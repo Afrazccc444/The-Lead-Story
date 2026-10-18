@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import EditionActions from '../components/EditionActions.jsx';
+import ArticleEngagement from '../components/reader/ArticleEngagement.jsx';
 import EditionView from '../components/newsletter/EditionView.jsx';
 import { PreviousEditions } from '../components/reader/ReaderTools.jsx';
 import { EditionSkeleton } from '../components/ui.jsx';
@@ -27,6 +28,7 @@ export default function EditionPage() {
     <SuspendedGate key={edition.slug} edition={edition}>
       <EditionActions edition={edition} />
       <EditionView edition={edition} />
+      <ArticleEngagement slug={edition.slug} />
       <PreviousEditions current={edition} />
     </SuspendedGate>
   );

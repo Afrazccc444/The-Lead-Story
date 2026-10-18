@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import EditionActions from '../components/EditionActions.jsx';
+import ArticleEngagement from '../components/reader/ArticleEngagement.jsx';
 import EditionView from '../components/newsletter/EditionView.jsx';
 import Masthead from '../components/newsletter/Masthead.jsx';
 import { PreviousEditions } from '../components/reader/ReaderTools.jsx';
@@ -29,6 +30,7 @@ export default function HomePage() {
     <>
       <EditionActions edition={edition} />
       <EditionView edition={edition} />
+      <ArticleEngagement slug={edition.slug} />
       <PreviousEditions current={edition} />
       <p className="archive-cta">
         <Link to="/all">See all past editions →</Link>

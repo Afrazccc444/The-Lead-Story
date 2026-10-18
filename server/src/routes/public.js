@@ -141,6 +141,35 @@ router.post('/editions/:slug/poll', voteLimiter, (req, res) => {
   res.json(pollResults(edition, voter));
 });
 
+// ── Views and likes under each article ───────────────────────
+router.get('/editions/:slug/engagement', (req, res) => {
+  const edition = editions.getPublishedBySlug(req.params.slug);
+  if (!edition) return res.status(404).json({ error: 'Edition not found' });
+  res.set('Cache-Control', 'no-store');
+  res.json(analytics.engagement(edition.id, req.cookies?.[VOTER_COOKIE]));
+});
+
+const likeLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false });
+
+/** Like (POST) or unlike (DELETE). No account needed; the IP address is recorded so likes stay genuine. */
+router.post('/editions/:slug/like', likeLimiter, (req, res) => {
+  const edition = editions.getPublishedBySlug(req.params.slug);
+  if (!edition) return res.status(404).json({ error: 'Edition not found' });
+  const voter = voterId(req, res);
+  if (!analytics.like(edition.id, voter, req.ip ?? '', req.get('user-agent'))) {
+    return res.status(429).json({ error: 'Too many likes from this network for this article.' });
+  }
+  res.json(analytics.engagement(edition.id, voter));
+});
+
+router.delete('/editions/:slug/like', likeLimiter, (req, res) => {
+  const edition = editions.getPublishedBySlug(req.params.slug);
+  if (!edition) return res.status(404).json({ error: 'Edition not found' });
+  const voter = voterId(req, res);
+  analytics.unlike(edition.id, voter);
+  res.json(analytics.engagement(edition.id, voter));
+});
+
 // ── Reader analytics (anonymous view counts) ─────────────────
 const viewLimiter = rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
 router.post('/views', viewLimiter, (req, res) => {

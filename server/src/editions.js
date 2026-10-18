@@ -62,7 +62,8 @@ export function listAll(userId = null) {
     .prepare(
       `SELECT e.id, e.issue_number, e.slug, e.status, e.publication_date, e.lead_headline, e.subheadline, e.updated_at,
               e.user_id, u.display_name AS author_name, u.organisation AS author_org, u.username AS author_username,
-              (SELECT COALESCE(SUM(v.count), 0) FROM edition_views v WHERE v.edition_id = e.id) AS views
+              (SELECT COALESCE(SUM(v.count), 0) FROM edition_views v WHERE v.edition_id = e.id) AS views,
+              (SELECT COUNT(*) FROM edition_likes l WHERE l.edition_id = e.id) AS likes
          FROM editions e LEFT JOIN users u ON u.id = e.user_id
         WHERE ?1 IS NULL OR e.user_id = ?1
         ORDER BY e.issue_number DESC`,
@@ -278,6 +279,7 @@ export function remove(id) {
   db.prepare('DELETE FROM editions WHERE id = ?').run(id);
   db.prepare('DELETE FROM poll_votes WHERE edition_id = ?').run(id);
   db.prepare('DELETE FROM edition_views WHERE edition_id = ?').run(id);
+  db.prepare('DELETE FROM edition_likes WHERE edition_id = ?').run(id);
 
   // Also delete its uploaded photos, unless another edition still uses them.
   // Photos and video clips used only by this edition are deleted with it.

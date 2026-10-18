@@ -105,6 +105,11 @@ router.get('/editions', (req, res) => {
   res.json({ editions: editions.listAll(null) });
 });
 
+/** Who liked an article: time, IP address and browser — to spot fake likes. */
+router.get('/editions/:id/likes', (req, res) => {
+  res.json({ likes: analytics.likeLog(idParam.parse(req.params.id)) });
+});
+
 // ── Introduction and terms shown on the public "Publish with us" page ─
 const publishingSchema = z.object({
   intro: z.string().max(4000),

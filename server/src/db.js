@@ -82,6 +82,18 @@ db.exec(`
     reviewed_at  TEXT
   );
 
+  -- Reader likes: no account needed. One per browser (random cookie id) per
+  -- edition; the IP address and browser are recorded so the owner can check
+  -- that likes are genuine.
+  CREATE TABLE IF NOT EXISTS edition_likes (
+    edition_id INTEGER NOT NULL,
+    voter      TEXT    NOT NULL,
+    ip         TEXT    NOT NULL DEFAULT '',
+    user_agent TEXT    NOT NULL DEFAULT '',
+    created_at TEXT    NOT NULL,
+    PRIMARY KEY (edition_id, voter)
+  );
+
   -- Reader analytics: one counter per edition, per day, per kind (read / video).
   CREATE TABLE IF NOT EXISTS edition_views (
     edition_id INTEGER NOT NULL,

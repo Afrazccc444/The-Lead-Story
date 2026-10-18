@@ -16,6 +16,43 @@ export function recordView(slug, kind) {
   return true;
 }
 
+/** What readers see under an article: total views and likes, and whether this browser liked it. */
+export function engagement(editionId, voter) {
+  const views = db.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM edition_views WHERE edition_id = ?').get(editionId).n;
+  const likes = db.prepare('SELECT COUNT(*) AS n FROM edition_likes WHERE edition_id = ?').get(editionId).n;
+  const liked = voter ? Boolean(db.prepare('SELECT 1 FROM edition_likes WHERE edition_id = ? AND voter = ?').get(editionId, voter)) : false;
+  return { views, likes, liked };
+}
+
+// One network can't flood an article with likes (a school or office shares one address).
+const MAX_LIKES_PER_ADDRESS = 50;
+
+/** Records a like (once per browser), with the address it came from. Returns false if this network hit the cap. */
+export function like(editionId, voter, ip, userAgent) {
+  if (db.prepare('SELECT 1 FROM edition_likes WHERE edition_id = ? AND voter = ?').get(editionId, voter)) return true;
+  const fromAddress = db.prepare('SELECT COUNT(*) AS n FROM edition_likes WHERE edition_id = ? AND ip = ?').get(editionId, ip).n;
+  if (fromAddress >= MAX_LIKES_PER_ADDRESS) return false;
+  db.prepare('INSERT INTO edition_likes (edition_id, voter, ip, user_agent, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    editionId,
+    voter,
+    ip,
+    String(userAgent ?? '').slice(0, 300),
+    new Date().toISOString(),
+  );
+  return true;
+}
+
+export function unlike(editionId, voter) {
+  db.prepare('DELETE FROM edition_likes WHERE edition_id = ? AND voter = ?').run(editionId, voter);
+}
+
+/** The like log for one edition (owner only): when, from which address and browser. */
+export function likeLog(editionId) {
+  return db
+    .prepare('SELECT ip, user_agent, created_at FROM edition_likes WHERE edition_id = ? ORDER BY created_at DESC LIMIT 500')
+    .all(editionId);
+}
+
 /** Everything the Admin app's overview shows. */
 export function overview(days = 30) {
   const since = daysAgo(days - 1);
@@ -41,7 +78,8 @@ export function overview(days = 30) {
               COALESCE(NULLIF(u.organisation, ''), u.display_name, u.username) AS author,
               SUM(CASE WHEN v.kind = 'read' THEN v.count ELSE 0 END) AS reads,
               SUM(CASE WHEN v.kind = 'video' THEN v.count ELSE 0 END) AS videos,
-              SUM(v.count) AS total
+              SUM(v.count) AS total,
+              (SELECT COUNT(*) FROM edition_likes l WHERE l.edition_id = e.id) AS likes
          FROM edition_views v JOIN editions e ON e.id = v.edition_id LEFT JOIN users u ON u.id = e.user_id
         GROUP BY e.id ORDER BY total DESC LIMIT 10`,
     )
@@ -55,6 +93,7 @@ export function overview(days = 30) {
       views_7_days: sum('WHERE day >= ?', daysAgo(6)),
       views_30_days: sum('WHERE day >= ?', since),
       video_views_30_days: sum(`WHERE day >= ? AND kind = 'video'`, since),
+      likes: count('SELECT COUNT(*) AS n FROM edition_likes'),
       published: count(`SELECT COUNT(*) AS n FROM editions WHERE status = 'published'`),
       drafts: count(`SELECT COUNT(*) AS n FROM editions WHERE status = 'draft'`),
       accounts: count(`SELECT COUNT(*) AS n FROM users WHERE role = 'editor' AND status <> 'disabled'`),

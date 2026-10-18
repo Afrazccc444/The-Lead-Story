@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { deleteWarning, EditionStatus, Notice } from '../admin/components.jsx';
 import { api } from '../lib/api.js';
@@ -14,6 +14,17 @@ export default function ArticlesPage() {
   const [status, setStatus] = useState('');
   const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [likeLog, setLikeLog] = useState(null); // { id, likes: [...] }
+
+  async function showLikes(e) {
+    if (likeLog?.id === e.id) return setLikeLog(null);
+    try {
+      const { likes } = await api.get(`/owner/editions/${e.id}/likes`);
+      setLikeLog({ id: e.id, likes });
+    } catch (err) {
+      setNotice({ tone: 'error', text: err.message });
+    }
+  }
   useDocumentTitle('All articles');
 
   const all = data?.editions ?? [];
@@ -90,6 +101,7 @@ export default function ArticlesPage() {
                 <th scope="col">Publisher</th>
                 <th scope="col">Status</th>
                 <th scope="col" className="num">Views</th>
+                <th scope="col" className="num">Likes</th>
                 <th scope="col">Last edited</th>
                 <th scope="col">
                   <span className="visually-hidden">Actions</span>
@@ -98,37 +110,66 @@ export default function ArticlesPage() {
             </thead>
             <tbody>
               {list.map((e) => (
-                <tr key={e.id}>
-                  <td>No. {e.issue_number}</td>
-                  <td className="table__headline">
-                    {e.lead_headline || <span className="muted">Untitled draft</span>}
-                    {e.status === 'published' && <div className="muted small">Published {formatDate(e.publication_date)}</div>}
-                  </td>
-                  <td>{authorOf(e)}</td>
-                  <td>
-                    <EditionStatus status={e.status} />
-                  </td>
-                  <td className="num">{formatNumber(e.views)}</td>
-                  <td>{formatDateTime(e.updated_at)}</td>
-                  <td className="table__actions">
-                    {e.status === 'published' ? (
-                      <a className="btn btn--ghost btn--small" href={`/edition/${e.slug}`} target="_blank" rel="noopener noreferrer">
-                        Read ↗
-                      </a>
-                    ) : null}
-                    <Link className="btn btn--ghost btn--small" to={`/admin/editions/${e.id}`}>
-                      Open in desk
-                    </Link>
-                    {e.status === 'published' && (
-                      <button type="button" className="btn btn--ghost btn--small" onClick={() => run(e, 'unpublish')} disabled={busy !== null}>
-                        Unpublish
+                <Fragment key={e.id}>
+                  <tr>
+                    <td>No. {e.issue_number}</td>
+                    <td className="table__headline">
+                      {e.lead_headline || <span className="muted">Untitled draft</span>}
+                      {e.status === 'published' && <div className="muted small">Published {formatDate(e.publication_date)}</div>}
+                    </td>
+                    <td>{authorOf(e)}</td>
+                    <td>
+                      <EditionStatus status={e.status} />
+                    </td>
+                    <td className="num">{formatNumber(e.views)}</td>
+                    <td className="num">
+                      {e.likes > 0 ? (
+                        <button type="button" className="link-button" onClick={() => showLikes(e)} title="Show who liked it (IP addresses)">
+                          {formatNumber(e.likes)}
+                        </button>
+                      ) : (
+                        0
+                      )}
+                    </td>
+                    <td>{formatDateTime(e.updated_at)}</td>
+                    <td className="table__actions">
+                      {e.status === 'published' ? (
+                        <a className="btn btn--ghost btn--small" href={`/edition/${e.slug}`} target="_blank" rel="noopener noreferrer">
+                          Read ↗
+                        </a>
+                      ) : null}
+                      <Link className="btn btn--ghost btn--small" to={`/admin/editions/${e.id}`}>
+                        Open in desk
+                      </Link>
+                      {e.status === 'published' && (
+                        <button type="button" className="btn btn--ghost btn--small" onClick={() => run(e, 'unpublish')} disabled={busy !== null}>
+                          Unpublish
+                        </button>
+                      )}
+                      <button type="button" className="btn btn--ghost btn--small btn--danger" onClick={() => run(e, 'delete')} disabled={busy !== null}>
+                        Delete
                       </button>
-                    )}
-                    <button type="button" className="btn btn--ghost btn--small btn--danger" onClick={() => run(e, 'delete')} disabled={busy !== null}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {likeLog?.id === e.id && (
+                    <tr className="like-log">
+                      <td colSpan={8}>
+                        <p className="like-log__title">Likes on issue {e.issue_number}: time, IP address and browser</p>
+                        <table className="table like-log__table">
+                          <tbody>
+                            {likeLog.likes.map((l, i) => (
+                              <tr key={i}>
+                                <td>{formatDateTime(l.created_at)}</td>
+                                <td className="like-log__ip">{l.ip || '—'}</td>
+                                <td className="muted small">{l.user_agent}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
