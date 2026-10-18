@@ -137,6 +137,16 @@
     min-width: 0;
   }
 
+  /* The rail is narrow: let the share buttons wrap instead of being cut off */
+  .lead-rail--left .share__list {
+    flex-wrap: wrap;
+  }
+
+  .lead-rail--left .share__btn {
+    width: 30px;
+    height: 30px;
+  }
+
   /* Right rail: boxes on top, then notes/quotes placed by script */
   .lead-rail--right {
     --rails-active: 1;

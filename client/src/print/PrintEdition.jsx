@@ -1,7 +1,7 @@
 import Bibliography from '../components/newsletter/Bibliography.jsx';
 import BarChart from '../components/newsletter/BarChart.jsx';
 import Prose, { CitedText } from '../components/newsletter/Prose.jsx';
-import { formatLongDate, REGION_LABELS } from '../lib/format.js';
+import { bylineName, formatLongDate, REGION_LABELS } from '../lib/format.js';
 
 const REGIONS = ['americas', 'emea', 'apac', 'global_south'];
 const has = (s) => Boolean(s && String(s).trim());
@@ -54,7 +54,7 @@ export default function PrintEdition({ edition, onlineUrl }) {
         <h2 className="pe-lead__headline">{lead.headline || 'Untitled edition'}</h2>
         {has(lead.subheadline) && <p className="pe-lead__sub">{lead.subheadline}</p>}
         {has(lead.deck) && <p className="pe-lead__deck">{lead.deck}</p>}
-        {has(lead.byline) && <p className="pe-lead__byline">By {lead.byline}</p>}
+        {has(lead.byline) && <p className="pe-lead__byline">By {bylineName(lead.byline)}</p>}
 
         {has(lead.image?.url) && (
           <figure className="pe-figure">

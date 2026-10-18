@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Masthead from '../components/newsletter/Masthead.jsx';
 import { SuspendedChip } from '../components/reader/SuspendedGate.jsx';
 import { ListSkeleton, TagBadges } from '../components/ui.jsx';
-import { excerpt, formatDate, formatLongDate } from '../lib/format.js';
+import { bylineName, excerpt, formatDate, formatLongDate } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
 
 /** Group editions (already newest-first) under "September 2026"-style headings. */
@@ -69,7 +69,7 @@ export default function AllEditionsPage() {
                   {edition.subheadline && <p className="all-card__sub">{edition.subheadline}</p>}
                   {edition.deck && <p className="all-card__deck">{excerpt(edition.deck, 150)}</p>}
                   <p className="all-card__foot">
-                    {[edition.byline && `By ${edition.byline}`, edition.source_count > 0 && `${edition.source_count} source${edition.source_count === 1 ? '' : 's'}`]
+                    {[edition.byline && `By ${bylineName(edition.byline)}`, edition.source_count > 0 && `${edition.source_count} source${edition.source_count === 1 ? '' : 's'}`]
                       .filter(Boolean)
                       .join(' · ')}
                     <Link to={`/edition/${edition.slug}`} className="all-card__read">

@@ -1,5 +1,10 @@
 const LOCALE = 'en-GB';
 
+/** A byline without a leading "By", since the page adds its own. */
+export function bylineName(byline = '') {
+  return String(byline).trim().replace(/^by\s+/i, '');
+}
+
 export function formatDate(value, options = { day: 'numeric', month: 'long', year: 'numeric' }) {
   if (!value) return '';
   const date = new Date(value);

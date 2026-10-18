@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { formatDate, readingMinutes } from '../../lib/format.js';
+import { bylineName, formatDate, readingMinutes } from '../../lib/format.js';
 import { CountUp } from '../Cinematic.jsx';
 import { ShareCluster } from '../reader/ReaderTools.jsx';
 import { SuspendedChip } from '../reader/SuspendedGate.jsx';
@@ -42,7 +42,7 @@ export default function LeadStory({ lead, sidebar, count, edition, still = false
         <div className="byline-frame">
           {lead.byline && (
             <span>
-              By <strong>{lead.byline}</strong>
+              By <strong>{bylineName(lead.byline)}</strong>
             </span>
           )}
           {lead.byline && <span className="byline-frame__sep" aria-hidden="true" />}

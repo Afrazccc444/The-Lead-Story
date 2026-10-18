@@ -72,7 +72,7 @@ if (existsSync(clientDist)) {
 
 app.use(errorHandler);
 
-const server = app.listen(config.port, () => {
+const server = app.listen(config.port, config.host, () => {
   console.info(`The Lead Story server: http://localhost:${config.port}  (data: ${config.dataDir})`);
   // The owner's recovery key lives only on this computer (see recovery.js).
   console.info(`Owner recovery key: ${ensureKey()}`);

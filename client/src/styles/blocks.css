@@ -457,8 +457,21 @@ a.social__link:hover {
   .site-bar__brand span {
     display: none;
   }
+  /* One tidy row of links that scrolls sideways if it ever runs out of room */
   .site-bar__nav {
+    width: 100%;
     margin-left: 0;
+    gap: var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+    font-size: 0.8125rem;
+  }
+  .site-bar__nav::-webkit-scrollbar {
+    display: none;
+  }
+  .site-bar__nav a {
+    flex: none;
+    white-space: nowrap;
   }
   .social--bar {
     display: none;
