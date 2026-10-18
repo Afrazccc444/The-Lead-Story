@@ -43,22 +43,20 @@ router.post(
 
 // ── Video clips (used only by the video reports) ──────────────
 export const VIDEO_URL_PATTERN = /^\/uploads\/[a-f0-9-]{36}\.(mp4|webm|mov)$/;
-// No size limit for videos. The only rule: an upload may never fill the disk —
-// the site (and anything else on the server) needs free space to keep running.
-const KEEP_FREE_BYTES = 2 * 1024 ** 3; // always leave 2 GB free
+// No size limit for videos: the only limit is the free space on the server's disk.
 const GB = (bytes) => `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 
-/** How many bytes a new upload may still use. */
+/** Free space on the disk the videos are saved to. */
 function uploadBudget() {
   try {
     const disk = statfsSync(uploadsDir);
-    return disk.bavail * disk.bsize - KEEP_FREE_BYTES;
+    return disk.bavail * disk.bsize;
   } catch {
     return Infinity; // cannot measure (unusual system): don't block uploads
   }
 }
 const noSpace = (budget) =>
-  `The server is running out of storage space (${GB(Math.max(0, budget))} left for uploads). Ask the site owner to free up space, then try again.`;
+  `This video is larger than the free space left on the server (${GB(Math.max(0, budget))}). Ask the site owner to free up space, then try again.`;
 
 /** Identify the video type from its first bytes. */
 function detectVideo(buf) {
@@ -70,11 +68,11 @@ function detectVideo(buf) {
 
 /**
  * POST /api/admin/videos — body is the raw video file. Streamed straight to
- * disk (never held in memory), checked by its first bytes. Any size, as long
- * as the server keeps its free-space safety margin.
+ * disk (never held in memory), checked by its first bytes. Any size that fits
+ * on the server's disk.
  */
 export const videoRouter = Router();
-videoRouter.post('/', requireUser, (req, res, next) => {
+videoRouter.post('/', requireUser, (req, res) => {
   const declared = Number(req.get('content-length') || 0);
   let budget = uploadBudget();
   if (declared > budget) return res.status(507).json({ error: noSpace(budget) });
@@ -106,8 +104,10 @@ videoRouter.post('/', requireUser, (req, res, next) => {
   });
   req.on('aborted', () => fail(400, 'Upload was cancelled.'));
   out.on('error', (err) => {
+    // Disk full: the partial file is deleted at once, so the site keeps running.
+    if (err.code === 'ENOSPC') return fail(507, 'The server’s disk is full, so the video could not be saved. Ask the site owner to free up space.');
+    console.error('[upload] video could not be saved', err);
     fail(500, 'The video could not be saved.');
-    next(err);
   });
   out.on('finish', async () => {
     if (failed) return;
