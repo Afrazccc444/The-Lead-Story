@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ReadingProgress } from '../components/Cinematic.jsx';
+import PageUnroll from '../components/PageUnroll.jsx';
 import SocialLinks from '../components/newsletter/SocialLinks.jsx';
 import { BackToTop, Lightbox, SearchBox, WebViewBanner } from '../components/reader/ReaderTools.jsx';
 import WarmLightToggle from '../components/reader/WarmLightToggle.jsx';
@@ -72,6 +73,7 @@ export default function PublicLayout() {
           </div>
         </div>
       </footer>
+      <PageUnroll />
       <WarmLightToggle />
       <BackToTop />
       <Lightbox />

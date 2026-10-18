@@ -1,0 +1,107 @@
+/* ═════════════════════════════════════════════════════════════
+   Page change inside the site: a paper scroll unrolls downwards,
+   revealing the new page. Sits under the top bar (z-index 50) so the
+   menu stays visible; never blocks clicks. With reduced motion the paper
+   simply fades away (no rolling movement).
+   ═════════════════════════════════════════════════════════════ */
+.page-unroll {
+  --unroll-time: 820ms;
+  --unroll-ease: cubic-bezier(0.7, 0, 0.25, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+
+/* The paper: warm newsprint with faint ruled lines, rolling away from the top. */
+.page-unroll__sheet {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(60, 40, 20, 0.12), transparent 70px),
+    repeating-linear-gradient(to bottom, transparent 0 31px, rgba(17, 17, 17, 0.045) 31px 32px),
+    linear-gradient(160deg, #fbf8f0, #f1ebdc);
+  animation: page-unroll-sheet var(--unroll-time) var(--unroll-ease) both;
+}
+
+/* The roller: a dark wooden rod with end caps and a soft shadow on the paper. */
+.page-unroll__rod {
+  position: absolute;
+  top: 0;
+  left: -6px;
+  right: -6px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #2b1d12 0%, #8a6440 35%, #5b3d24 60%, #1e140c 100%);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: page-unroll-rod var(--unroll-time) var(--unroll-ease) both;
+}
+
+.page-unroll__rod::before,
+.page-unroll__rod::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  width: 22px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, #1a110a, #b08a5a 45%, #1a110a);
+}
+
+.page-unroll__rod::before {
+  left: 0;
+}
+
+.page-unroll__rod::after {
+  right: 0;
+}
+
+@keyframes page-unroll-sheet {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes page-unroll-rod {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(calc(100vh - 16px));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-unroll__sheet {
+    animation: page-unroll-fade 320ms ease-out both;
+  }
+
+  .page-unroll__rod {
+    display: none;
+  }
+}
+
+@keyframes page-unroll-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media print {
+  .page-unroll {
+    display: none;
+  }
+}

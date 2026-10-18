@@ -22,6 +22,7 @@ import './styles/typography.css';
 import './styles/cinematic.css';
 import './styles/print.css';
 import './styles/engagement.css';
+import './styles/page-transition.css';
 import './styles/mobile.css';
 
 import App from './App.jsx';
