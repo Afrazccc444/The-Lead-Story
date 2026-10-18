@@ -44,6 +44,12 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 // Uploaded images: file names are random and never reused, so they can be cached for a long time.
 // fallthrough: false → a missing image is a real 404, not the website's index page.
 app.use('/uploads', express.static(uploadsDir, { maxAge: '30d', immutable: true, index: false, fallthrough: false }));
+// Every API answer (including errors) must be re-checked, so a newly published
+// edition reaches every device at once. Routes may still tighten this to no-store.
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-cache');
+  next();
+});
 app.use('/api/admin/images', uploadRoutes);
 app.use('/api/admin/videos', videoRouter);
 app.use('/api/auth', authRoutes);
@@ -59,7 +65,16 @@ if (existsSync(clientDist)) {
     '/assets',
     express.static(path.join(clientDist, 'assets'), { maxAge: '1y', immutable: true, index: false, fallthrough: false }),
   );
-  app.use(express.static(clientDist, { index: false, maxAge: '1d' }));
+  app.use(
+    express.static(clientDist, {
+      index: false,
+      maxAge: '1d',
+      // The offline-support script must always be fresh, so site updates reach visitors straight away.
+      setHeaders: (res, file) => {
+        if (file.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache');
+      },
+    }),
+  );
   app.get('*', (req, res) => {
     res.set('Cache-Control', 'no-cache');
     res.sendFile(path.join(clientDist, 'index.html'));

@@ -4,6 +4,7 @@ import { ReadingProgress } from '../components/Cinematic.jsx';
 import PageUnroll from '../components/PageUnroll.jsx';
 import SocialLinks from '../components/newsletter/SocialLinks.jsx';
 import { BackToTop, Lightbox, SearchBox, WebViewBanner } from '../components/reader/ReaderTools.jsx';
+import NewEditionNotice from '../components/reader/NewEditionNotice.jsx';
 import WarmLightToggle from '../components/reader/WarmLightToggle.jsx';
 import { useSite } from '../lib/useSite.js';
 
@@ -74,6 +75,7 @@ export default function PublicLayout() {
         </div>
       </footer>
       <PageUnroll />
+      <NewEditionNotice />
       <WarmLightToggle />
       <BackToTop />
       <Lightbox />

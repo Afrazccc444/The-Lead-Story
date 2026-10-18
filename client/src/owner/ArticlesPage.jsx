@@ -33,6 +33,7 @@ export default function ArticlesPage() {
 
   async function run(e, action) {
     if (action === 'delete' && !window.confirm(deleteWarning(e))) return;
+    if (action === 'publish' && !window.confirm(`Publish “${e.lead_headline || `Issue ${e.issue_number}`}” by ${authorOf(e)} now? It goes live for every reader immediately.`)) return;
     if (action === 'unpublish' && !window.confirm(`Take “${e.lead_headline || `Issue ${e.issue_number}`}” off the website? The publisher keeps it as a draft.`)) return;
     setBusy(e.id);
     setNotice(null);
@@ -141,9 +142,13 @@ export default function ArticlesPage() {
                       <Link className="btn btn--ghost btn--small" to={`/admin/editions/${e.id}`}>
                         Open in desk
                       </Link>
-                      {e.status === 'published' && (
+                      {e.status === 'published' ? (
                         <button type="button" className="btn btn--ghost btn--small" onClick={() => run(e, 'unpublish')} disabled={busy !== null}>
                           Unpublish
+                        </button>
+                      ) : (
+                        <button type="button" className="btn btn--primary btn--small" onClick={() => run(e, 'publish')} disabled={busy !== null}>
+                          Publish
                         </button>
                       )}
                       <button type="button" className="btn btn--ghost btn--small btn--danger" onClick={() => run(e, 'delete')} disabled={busy !== null}>

@@ -93,3 +93,76 @@
 .like-log__ip {
   font-family: var(--font-mono);
 }
+
+/* "New edition just published" — for readers who already have the site open */
+.new-edition {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  width: min(36rem, calc(100% - 2 * 16px - 2 * 52px));
+  padding: 0.7rem 2.4rem 0.7rem 1rem;
+  transform: translateX(-50%);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--chrome, #111);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-sans);
+  animation: new-edition-in 0.4s ease-out both;
+}
+
+.new-edition__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: #ffb4ab;
+}
+
+.new-edition__title {
+  flex: 1 1 100%;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.new-edition__go {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.new-edition__close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@keyframes new-edition-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media print {
+  .new-edition {
+    display: none;
+  }
+}
