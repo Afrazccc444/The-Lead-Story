@@ -292,7 +292,7 @@ export function VideoClipsEditor({ value, onChange, content }) {
       <legend>Video clips (video report only)</legend>
       <p className="field__hint">
         Add your own footage to the video report. Pick the headline it belongs to — when the robot anchor reaches that story,
-        your clip plays. Clips never appear in the written newsletter or the PDF. MP4 works best (up to 200 MB).
+        your clip plays. Clips never appear in the written newsletter or the PDF. MP4 works best. Videos can be any size; large files simply take longer to upload.
       </p>
       {!targets.length && <p className="field__hint"><strong>Write a headline first</strong> — clips are attached to stories.</p>}
       <ListEditor

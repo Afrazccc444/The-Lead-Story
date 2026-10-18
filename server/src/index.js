@@ -93,6 +93,10 @@ const server = app.listen(config.port, config.host, () => {
   console.info(`Owner recovery key: ${ensureKey()}`);
 });
 
+// Large video uploads on slow connections can take a long time: allow up to 6 hours
+// per request instead of Node's default 5 minutes.
+server.requestTimeout = 6 * 60 * 60 * 1000;
+
 function shutdown() {
   server.close();
   db.close();

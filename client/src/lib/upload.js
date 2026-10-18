@@ -53,17 +53,13 @@ export async function uploadImage(file) {
 }
 
 /**
- * Upload a video clip (MP4, WebM or MOV, up to 200 MB), reporting progress
+ * Upload a video clip (MP4, WebM or MOV — any size), reporting progress
  * from 0 to 1. Resolves to its public URL.
  */
 export function uploadVideo(file, onProgress = () => {}) {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('video/') && !/\.(mp4|webm|mov|m4v)$/i.test(file.name)) {
       reject(new Error('Please choose a video file (MP4, WebM or MOV).'));
-      return;
-    }
-    if (file.size > 200 * 1024 * 1024) {
-      reject(new Error('Videos can be up to 200 MB. Try exporting a shorter or smaller clip.'));
       return;
     }
     const xhr = new XMLHttpRequest();

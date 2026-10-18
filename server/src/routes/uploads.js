@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { createWriteStream, mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, statfsSync, writeFileSync } from 'node:fs';
 import { rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import express, { Router } from 'express';
@@ -43,7 +43,22 @@ router.post(
 
 // ── Video clips (used only by the video reports) ──────────────
 export const VIDEO_URL_PATTERN = /^\/uploads\/[a-f0-9-]{36}\.(mp4|webm|mov)$/;
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB
+// No size limit for videos. The only rule: an upload may never fill the disk —
+// the site (and anything else on the server) needs free space to keep running.
+const KEEP_FREE_BYTES = 2 * 1024 ** 3; // always leave 2 GB free
+const GB = (bytes) => `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+
+/** How many bytes a new upload may still use. */
+function uploadBudget() {
+  try {
+    const disk = statfsSync(uploadsDir);
+    return disk.bavail * disk.bsize - KEEP_FREE_BYTES;
+  } catch {
+    return Infinity; // cannot measure (unusual system): don't block uploads
+  }
+}
+const noSpace = (budget) =>
+  `The server is running out of storage space (${GB(Math.max(0, budget))} left for uploads). Ask the site owner to free up space, then try again.`;
 
 /** Identify the video type from its first bytes. */
 function detectVideo(buf) {
@@ -55,12 +70,14 @@ function detectVideo(buf) {
 
 /**
  * POST /api/admin/videos — body is the raw video file. Streamed straight to
- * disk (never held in memory), checked by its first bytes, max 200 MB.
+ * disk (never held in memory), checked by its first bytes. Any size, as long
+ * as the server keeps its free-space safety margin.
  */
 export const videoRouter = Router();
 videoRouter.post('/', requireUser, (req, res, next) => {
   const declared = Number(req.get('content-length') || 0);
-  if (declared > MAX_VIDEO_BYTES) return res.status(413).json({ error: 'Videos can be up to 200 MB. Try exporting a shorter or smaller clip.' });
+  let budget = uploadBudget();
+  if (declared > budget) return res.status(507).json({ error: noSpace(budget) });
 
   const tmp = path.join(uploadsDir, `upload-${randomUUID()}.part`);
   const out = createWriteStream(tmp);
@@ -76,10 +93,16 @@ videoRouter.post('/', requireUser, (req, res, next) => {
     if (!res.headersSent) res.status(status).json({ error });
   };
 
+  let nextCheck = 256 * 1024 ** 2;
   req.on('data', (chunk) => {
     size += chunk.length;
     if (head.length < 16) head = Buffer.concat([head, chunk]).subarray(0, 16);
-    if (size > MAX_VIDEO_BYTES) fail(413, 'Videos can be up to 200 MB.');
+    // Re-measure the disk every 256 MB (other uploads may be running at the same time).
+    if (size >= nextCheck) {
+      budget = uploadBudget() + size;
+      nextCheck += 256 * 1024 ** 2;
+    }
+    if (size > budget) fail(507, noSpace(budget - size));
   });
   req.on('aborted', () => fail(400, 'Upload was cancelled.'));
   out.on('error', (err) => {
