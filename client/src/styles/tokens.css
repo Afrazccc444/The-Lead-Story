@@ -4,6 +4,9 @@
    Every size, spacing, radius and colour in the app comes from here.
    ───────────────────────────────────────────────────────────── */
 :root {
+  /* Light theme only, whatever the device setting (Windows/macOS dark mode included). */
+  color-scheme: only light;
+
   /* ── Colour (light) ───────────────────────────────────────── */
   --ink: #111111;            /* primary text, rules at full weight */
   --ink-2: #3a3a36;          /* secondary text */
@@ -130,46 +133,6 @@
 @media (min-width: 1100px) {
   :root {
     --ratio: var(--ratio-lg);
-  }
-}
-
-/* ── Dark theme: follows the device setting automatically ─────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --ink: #ecebe5;
-    --ink-2: #c9c8c0;
-    --ink-3: #9d9c93;
-    --paper: #131312;
-    --paper-2: #1c1c1a;
-    --paper-3: #232320;
-    --rule: #2f2f2b;
-    --rule-strong: #46463f;
-    --accent: #e0625a;
-    --accent-ink: #131312;
-    --accent-wash: #3a1d1b;
-    --skeleton: #262623;
-
-    --chrome: #0b0b0a;
-    --chrome-ink: #f1f0ea;
-
-    --good: #8fc79a;
-    --good-wash: #1d2a1f;
-    --warn: #e3c07a;
-    --warn-wash: #2b2416;
-    --bad: #f08a8a;
-    --bad-wash: #3a1d1b;
-    --active: #9fb8d8;
-    --active-wash: #1b2330;
-
-    --tag-politics: #e0625a;
-    --tag-diplomacy: #8fb0dc;
-    --tag-conflict: #d6a46e;
-    --tag-economy: #8fc79a;
-    --tag-elections: #c89ad8;
-    --tag-climate: #7cc8c8;
-    --tag-tech: #c9c8c0;
-    --tag-default: #9d9c93;
   }
 }
 
