@@ -25,6 +25,7 @@ export default function NewEditionDialog({ onClose }) {
   const [headlines, setHeadlines] = useState(3);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [pasted, setPasted] = useState('');
   const fileInput = useRef(null);
   const dialog = useRef(null);
 
@@ -47,6 +48,7 @@ export default function NewEditionDialog({ onClose }) {
     }
   }
 
+  // A file — or pasted text, sent the same way as a plain-text file.
   async function upload(file) {
     if (!file) return;
     setBusy(true);
@@ -55,7 +57,7 @@ export default function NewEditionDialog({ onClose }) {
       const res = await fetch('/api/admin/template/import', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) },
+        headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name ?? 'pasted.txt') },
         body: file,
       });
       const data = await res.json().catch(() => ({}));
@@ -68,7 +70,7 @@ export default function NewEditionDialog({ onClose }) {
     }
   }
 
-  const count = Math.min(Math.max(1, Number(headlines) || 1), 20);
+  const count = Math.max(1, Math.round(Number(headlines)) || 1);
   const link = (format) => `/api/admin/template?headlines=${count}${format === 'txt' ? '&format=txt' : ''}`;
 
   // Rendered on <body>: inside the page's animated container it would sit under the top bar.
@@ -122,7 +124,6 @@ export default function NewEditionDialog({ onClose }) {
                   type="number"
                   className="input template-steps__count"
                   min={1}
-                  max={20}
                   value={headlines}
                   onChange={(e) => setHeadlines(e.target.value)}
                   aria-label="Number of headlines"
@@ -156,12 +157,32 @@ export default function NewEditionDialog({ onClose }) {
               <li>
                 <span className="template-steps__title">Upload your answered template</span>
                 <span className="template-steps__text">
-                  Word (.docx), PDF or text. Your article is laid out automatically; you can then add photos and videos.
+                  Word (.docx or .doc), PDF, OpenDocument (.odt), RTF, web page or text. Your article is laid out
+                  automatically; you can then add photos and videos.
                 </span>
                 <label className={`btn btn--accent btn--small template-steps__upload${busy ? ' is-busy' : ''}`}>
                   {busy ? 'Reading your answers…' : 'Choose file and create edition'}
-                  <input ref={fileInput} type="file" accept=".docx,.pdf,.txt,.md,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => upload(e.target.files?.[0])} disabled={busy} hidden />
+                  <input ref={fileInput} type="file" accept=".docx,.doc,.pdf,.odt,.rtf,.txt,.md,.html,.htm,text/*,application/pdf,application/msword,application/rtf,application/vnd.oasis.opendocument.text,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => upload(e.target.files?.[0])} disabled={busy} hidden />
                 </label>
+                <details className="paste-answers">
+                  <summary>…or paste your answers instead</summary>
+                  <textarea
+                    className="textarea"
+                    rows={8}
+                    value={pasted}
+                    onChange={(e) => setPasted(e.target.value)}
+                    placeholder={'[A2]\nYour main headline\n\n[H1]\nYour first headline\n\n[R1]\nYour first response…'}
+                    disabled={busy}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--accent btn--small"
+                    onClick={() => upload(new File([pasted], 'pasted.txt', { type: 'text/plain' }))}
+                    disabled={busy || !pasted.trim()}
+                  >
+                    {busy ? 'Reading your answers…' : 'Create edition from pasted answers'}
+                  </button>
+                </details>
               </li>
             </ol>
 

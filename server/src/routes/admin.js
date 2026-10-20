@@ -28,7 +28,8 @@ function editionFor(req) {
 }
 
 // ── Content validation ───────────────────────────────────────
-const text = (max) => z.string().max(max).default('');
+// No length limits on any text (the parameter is kept only to document the old size).
+const text = () => z.string().default('');
 // Only images uploaded to this site may be used (keeps pages fast and safe).
 const imageUrl = z
   .string()
@@ -37,12 +38,17 @@ const imageUrl = z
   .default('');
 const briefingItem = z.object({ headline: text(300), summary: text(3000), image: imageUrl });
 // Links readers can click: only web and email addresses (blocks "javascript:" tricks).
+// "www.bbc.com" becomes "https://www.bbc.com"; anything that is not a web or email
+// address (e.g. "N/A", or a "javascript:" trick) is dropped instead of being rejected.
 const link = z
   .string()
-  .trim()
-  .max(2000)
-  .refine((v) => v === '' || /^(https?:\/\/|mailto:)/i.test(v), 'Links must start with https:// (or mailto: for email)')
-  .default('');
+  .default('')
+  .transform((raw) => {
+    const v = raw.trim();
+    if (!v || /^(https?:\/\/|mailto:)/i.test(v)) return v;
+    if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(v)) return `https://${v}`;
+    return '';
+  });
 
 const featureBlock = z.object({
   title: text(200),
@@ -61,10 +67,10 @@ const contentSchema = z.object({
     byline: text(200),
     image: z.object({ url: imageUrl, caption: text(500), credit: text(200) }).default({}),
     body_markdown: text(80000),
-    key_metrics: z.array(z.object({ label: text(120), value: text(60), context: text(300) })).max(8).default([]),
+    key_metrics: z.array(z.object({ label: text(120), value: text(60), context: text(300) })).default([]),
     historical_context_markdown: text(15000),
-    what_to_watch: z.array(z.string().max(500)).max(10).default([]),
-    pull_quotes: z.array(z.string().max(300)).max(4).default([]),
+    what_to_watch: z.array(z.string()).default([]),
+    pull_quotes: z.array(z.string()).default([]),
     // Headline sections: each has a headline, the written response, and its own photos/videos.
     // When present, the article text (body_markdown) is built from them automatically.
     sections: z
@@ -80,18 +86,18 @@ const contentSchema = z.object({
                 caption: text(300),
               }),
             )
-            .max(8)
+            
             .default([]),
         }),
       )
-      .max(30)
+      
       .default([]),
   }),
   global_briefing: z.object({
-    americas: z.array(briefingItem).max(15).default([]),
-    emea: z.array(briefingItem).max(15).default([]),
-    apac: z.array(briefingItem).max(15).default([]),
-    global_south: z.array(briefingItem).max(15).default([]),
+    americas: z.array(briefingItem).default([]),
+    emea: z.array(briefingItem).default([]),
+    apac: z.array(briefingItem).default([]),
+    global_south: z.array(briefingItem).default([]),
   }),
   data_trends: z
     .array(
@@ -100,10 +106,10 @@ const contentSchema = z.object({
         caption: text(1000),
         unit: text(30),
         chart_type: z.enum(['bar', 'none']).default('none'),
-        data_points: z.array(z.object({ label: z.string().max(120), value: z.number().finite() })).max(30).default([]),
+        data_points: z.array(z.object({ label: z.string(), value: z.number().finite() })).default([]),
       }),
     )
-    .max(6)
+    
     .default([]),
   bibliography: z
     .array(
@@ -116,7 +122,7 @@ const contentSchema = z.object({
         accessed: text(40),
       }),
     )
-    .max(100)
+    
     .default([]),
 
   // ── Layout & structural blocks ─────────────────────────────
@@ -128,16 +134,16 @@ const contentSchema = z.object({
         layout: z.enum(['1', '2', '3']).default('2'),
         background: z.enum(['plain', 'tint', 'dark']).default('plain'),
         divider: z.enum(['line', 'double', 'space']).default('line'),
-        blocks: z.array(featureBlock).max(12).default([]),
+        blocks: z.array(featureBlock).default([]),
       }),
     )
-    .max(8)
+    
     .default([]),
   sidebar: z
     .object({
       title: text(120),
-      links: z.array(z.object({ label: text(200), url: link })).max(20).default([]),
-      sponsors: z.array(z.object({ name: text(120), url: link, logo: imageUrl })).max(10).default([]),
+      links: z.array(z.object({ label: text(200), url: link })).default([]),
+      sponsors: z.array(z.object({ name: text(120), url: link, logo: imageUrl })).default([]),
       note: text(1000),
     })
     .default({}),
@@ -152,8 +158,8 @@ const contentSchema = z.object({
     .default({}),
 
   // ── Tags, promotion slot and reader poll ───────────────────
-  tags: z.array(z.string().trim().min(1).max(30)).max(6).default([]),
-  explainers: z.array(z.object({ title: text(160), body_markdown: text(3000) })).max(6).default([]),
+  tags: z.array(z.string().trim().min(1)).default([]),
+  explainers: z.array(z.object({ title: text(160), body_markdown: text(3000) })).default([]),
   // Clips that play only in the video report, at a chosen story
   video_clips: z
     .array(
@@ -164,13 +170,13 @@ const contentSchema = z.object({
         play: z.enum(['before', 'wall']).default('before'),
       }),
     )
-    .max(12)
+    
     .default([]),
   promo: z.object({ image: imageUrl, link, label: text(120) }).default({}),
   poll: z
     .object({
       question: text(200),
-      options: z.array(z.string().max(120)).max(6).default([]),
+      options: z.array(z.string()).default([]),
     })
     .default({}),
 });
@@ -184,8 +190,8 @@ const siteSchema = z.object({
 
 const editionPatch = z.object({
   content: contentSchema.optional(),
-  editor_note: z.string().max(8000).optional(),
-  issue_number: z.number().int().min(1).max(100000).optional(),
+  editor_note: z.string().optional(),
+  issue_number: z.number().int().min(1).optional(),
   publication_date: z.string().datetime().nullable().optional(),
 });
 
@@ -207,7 +213,7 @@ router.get('/editions', (req, res) => {
 // ── Question template: create an edition from an answered document ──
 /** Download the template for N headlines, as Word (.docx) or plain text. */
 router.get('/template', (req, res) => {
-  const headlines = z.coerce.number().int().min(1).max(template.MAX_HEADLINES).catch(3).parse(req.query.headlines);
+  const headlines = z.coerce.number().int().min(1).catch(3).parse(req.query.headlines);
   const name = `The-Lead-Story-template-${headlines}-headline${headlines === 1 ? '' : 's'}`;
   if (req.query.format === 'txt') {
     res.type('text/plain; charset=utf-8').attachment(`${name}.txt`).send(template.templateText(headlines));
@@ -222,7 +228,7 @@ router.get('/template', (req, res) => {
 /** Upload an answered template (Word, PDF or text): the edition is created and laid out automatically. */
 router.post(
   '/template/import',
-  express.raw({ type: () => true, limit: '25mb' }),
+  express.raw({ type: () => true, limit: '500mb' }),
   asyncHandler(async (req, res) => {
     if (!req.body?.length) return res.status(400).json({ error: 'Please choose your answered template file.' });
     const fileName = decodeURIComponent(req.get('x-file-name') ?? '');
@@ -237,7 +243,13 @@ router.post(
       return res.status(422).json({ error: 'No answers were found. Make sure each answer is written under its code, like [A2] or [R1].' });
     }
     const { content, editorNote, report } = template.buildContent(answers, editions.emptyContent());
-    const patch = editionPatch.parse({ content, editor_note: editorNote }); // checked before anything is created
+    // Checked before anything is created; a problem is reported by its template code.
+    const checked = editionPatch.safeParse({ content, editor_note: editorNote });
+    if (!checked.success) {
+      const where = checked.error.issues.map((issue) => `${template.codeForPath(issue.path)}: ${issue.message}`);
+      return res.status(422).json({ error: `These answers could not be used — ${[...new Set(where)].join('; ')}` });
+    }
+    const patch = checked.data;
     const created = editions.create(req.user.id);
     const edition = editions.update(created.id, patch);
     res.status(201).json({ edition, report: { ...report, unknown } });

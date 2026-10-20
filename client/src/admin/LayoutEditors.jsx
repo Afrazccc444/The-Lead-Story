@@ -198,16 +198,12 @@ export function TagsField({ value, onChange }) {
   const [text, setText] = useState(() => (value ?? []).join(', '));
   return (
     <TextField
-      label="Topic tags (comma separated, up to 6)"
+      label="Topic tags (comma separated)"
       value={text}
       placeholder="Diplomacy, Conflict, Economy"
       onChange={(v) => {
         setText(v);
-        onChange(
-          [...new Set(v.split(',').map((t) => t.trim()).filter(Boolean))]
-            .slice(0, 6)
-            .map((t) => t.slice(0, 30)),
-        );
+        onChange([...new Set(v.split(',').map((t) => t.trim()).filter(Boolean))]);
       }}
       hint="Shown as coloured badges by the byline and on the All page. Colours are fixed per topic."
     />

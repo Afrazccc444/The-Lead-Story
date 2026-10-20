@@ -4,11 +4,9 @@
 // square brackets, e.g. [A2] — written on the line above (or before) the answer.
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 
-export const MAX_HEADLINES = 20;
-
 /** Every question, in order, for a template with `headlines` headline sections. */
 export function questions(headlines) {
-  const n = Math.min(Math.max(1, Math.round(headlines) || 1), MAX_HEADLINES);
+  const n = Math.max(1, Math.round(headlines) || 1);
   const list = [
     { section: 'A — ABOUT THE EDITION' },
     { code: 'A1', label: 'Kicker: a short topic label shown above the headline (e.g. "Middle East diplomacy")' },
@@ -120,6 +118,67 @@ function docxText(buffer) {
     .join('\n');
 }
 
+/** OpenDocument text (.odt, from LibreOffice / OpenOffice): one line per paragraph or heading. */
+function odtText(buffer) {
+  const files = unzipSync(new Uint8Array(buffer), { filter: (f) => f.name === 'content.xml' });
+  const xml = files['content.xml'];
+  if (!xml) throw new Error('This document has no text.');
+  return decodeXml(
+    strFromU8(xml)
+      .replace(/<text:line-break\/>/g, '\n')
+      .replace(/<text:tab\/>/g, '\t')
+      .replace(/<text:s(?:\s+text:c="(\d+)")?\/>/g, (_, n) => ' '.repeat(Number(n) || 1))
+      .replace(/<\/text:(p|h)>/g, '\n')
+      .replace(/<[^>]+>/g, ''),
+  );
+}
+
+/** Rich Text Format (.rtf): text with paragraphs, special characters decoded. */
+function rtfText(buffer) {
+  let rtf = buffer.toString('latin1');
+  // Drop groups that hold no readable text (fonts, colours, styles, pictures, hidden metadata).
+  for (let pass = 0; pass < 6; pass++) {
+    rtf = rtf.replace(/\{\\(?:\*|fonttbl|colortbl|stylesheet|info|pict|listtable|listoverridetable|rsidtbl|generator)[^{}]*\}/g, '');
+  }
+  return rtf
+    .replace(/\\u(-?\d+)\??/g, (_, n) => String.fromCharCode((Number(n) + 65536) % 65536))
+    .replace(/\\'([0-9a-f]{2})/gi, (_, h) => Buffer.from([parseInt(h, 16)]).toString('latin1'))
+    .replace(/\\(par|line)\b ?/g, '\n')
+    .replace(/\\tab\b ?/g, '\t')
+    .replace(/\\([{}\\])/g, '$1')
+    .replace(/\\[a-z]+-?\d* ?/gi, '')
+    .replace(/[{}]/g, '');
+}
+
+/** A web page (.html): block elements become lines; tags and scripts are removed. */
+function htmlText(buffer) {
+  return decodeXml(
+    buffer
+      .toString('utf8')
+      .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|li|tr|blockquote|pre|section|article)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' '),
+  );
+}
+
+/**
+ * Old Word (.doc, Word 97–2003): the text is stored as runs of characters inside
+ * a binary file. Readable runs are collected in order — enough for the codes and
+ * answers. (Saving as .docx is still more exact.)
+ */
+function docText(buffer) {
+  const runs = [];
+  // Word stores text either as 2-byte (UTF-16) or 1-byte (Latin) characters.
+  const utf16 = buffer.toString('utf16le').match(/[\p{L}\p{N}\p{P}\p{Zs}\t\r\n|$+<>=^`~]{4,}/gu) ?? [];
+  const latin = buffer.toString('latin1').match(/[\x20-\x7e\xa0-\xff\t\r\n]{4,}/g) ?? [];
+  // The encoding that yields more [A2]-style codes is the one the text is in.
+  const codes = (list) => list.join('\n').match(/\[\s*([A-Z]\d{1,3}|END)\s*\]/gi)?.length ?? 0;
+  runs.push(...(codes(utf16) >= codes(latin) ? utf16 : latin));
+  return runs.join('\n').replace(/\r/g, '\n');
+}
+
 async function pdfText(buffer) {
   const { extractText, getDocumentProxy } = await import('unpdf');
   const pdf = await getDocumentProxy(new Uint8Array(buffer));
@@ -130,14 +189,24 @@ async function pdfText(buffer) {
 /** Text of an uploaded file, whatever its format. */
 export async function extractText(buffer, fileName = '') {
   const name = fileName.toLowerCase();
-  if (buffer.subarray(0, 4).toString('latin1') === '%PDF' || name.endsWith('.pdf')) return pdfText(buffer);
-  if (buffer[0] === 0x50 && buffer[1] === 0x4b) return docxText(buffer); // a ZIP: Word .docx
-  if (name.endsWith('.doc')) throw new Error('Old Word (.doc) files are not supported — please save as .docx, PDF or text.');
-  return buffer.toString('utf8').replace(/^﻿/, '');
+  const start = buffer.subarray(0, 8);
+  if (start.subarray(0, 4).toString('latin1') === '%PDF' || name.endsWith('.pdf')) return pdfText(buffer);
+  if (start[0] === 0x50 && start[1] === 0x4b) {
+    // A ZIP: Word .docx or OpenDocument .odt — look inside to tell them apart.
+    const names = Object.keys(unzipSync(new Uint8Array(buffer), { filter: (f) => f.name === 'word/document.xml' || f.name === 'content.xml' }));
+    return names.includes('word/document.xml') ? docxText(buffer) : odtText(buffer);
+  }
+  if (start.toString('hex') === 'd0cf11e0a1b11ae1' || name.endsWith('.doc')) return docText(buffer); // Word 97–2003
+  const text = buffer.toString('utf8').replace(/^﻿/, '');
+  if (text.startsWith('{\\rtf') || name.endsWith('.rtf')) return rtfText(buffer);
+  if (/^\s*<(!doctype html|html|body|p|div)/i.test(text) || /\.html?$/.test(name)) return htmlText(buffer);
+  // Text saved as UTF-16 (some Windows editors do this).
+  if (start[0] === 0xff && start[1] === 0xfe) return buffer.toString('utf16le').replace(/^﻿/, '');
+  return text;
 }
 
 // A code counts only at the start of a line, so a code mentioned inside a sentence is just text.
-const CODE = /^[ \t]*\[\s*([A-Z]\d{1,2}|END)\s*\]/gim;
+const CODE = /^[ \t]*\[\s*([A-Z]\d+|END)\s*\]/gim;
 
 /** Splits text into { CODE: answer } using the [X1] markers. Text before the first code is ignored. */
 export function readAnswers(text) {
@@ -160,20 +229,48 @@ export function readAnswers(text) {
       .replace(/[ \t]+$/gm, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
-    if (!/^(A[1-6]|H\d{1,2}|R\d{1,2}|C[1-3]|S1)$/.test(code)) unknown.push(code);
+    if (!/^(A[1-6]|H\d+|R\d+|C[1-3]|S1)$/.test(code)) unknown.push(code);
     else if (body) answers[code] = answers[code] ? `${answers[code]}\n\n${body}` : body;
   }
   return { answers, unknown: [...new Set(unknown)] };
+}
+
+/** The template code an edition field came from — for error messages ("S1 (sources), line 2"). */
+export function codeForPath(path = []) {
+  const p = path.join('.');
+  const fixed = {
+    'content.lead_story.kicker': 'A1 (kicker)',
+    'content.lead_story.headline': 'A2 (main headline)',
+    'content.lead_story.subheadline': 'A3 (subheadline)',
+    'content.lead_story.deck': 'A4 (deck)',
+    'content.lead_story.byline': 'A5 (byline)',
+    'content.lead_story.historical_context_markdown': 'C1 (historical context)',
+    editor_note: "C3 (editor's note)",
+  };
+  if (fixed[p]) return fixed[p];
+  if (p.startsWith('content.tags')) return 'A6 (tags)';
+  if (p.startsWith('content.lead_story.what_to_watch')) return 'C2 (what to watch)';
+  const section = /^content\.lead_story\.sections\.(\d+)\.(headline|body_markdown)/.exec(p);
+  if (section) return `${section[2] === 'headline' ? 'H' : 'R'}${Number(section[1]) + 1}`;
+  const src = /^content\.bibliography\.(\d+)/.exec(p);
+  if (src) return `S1 (sources), line ${Number(src[1]) + 1}`;
+  return p || 'the document';
 }
 
 const lines = (s = '') => s.split('\n').map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean);
 
 /** One bibliography line → a source. "Author | Title | Publication | Date | Link" (missing parts are fine). */
 function source(line) {
-  const url = line.match(/https?:\/\/[^\s|]+/i)?.[0] ?? '';
-  const parts = line.replace(url, '').split('|').map((p) => p.trim());
+  // A link with or without https:// ("www.bbc.com/news" works too).
+  const found = line.match(/https?:\/\/[^\s|]+|(?:www\.)?[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}(?:\/[^\s|]*)?/i);
+  const looksLikeLink = found && (/^https?:\/\//i.test(found[0]) || /^www\./i.test(found[0]) || found[0].includes('/'));
+  const raw = looksLikeLink ? found[0] : '';
+  const url = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/[.,;)]+$/, '') : '';
+  const rest = raw ? line.replace(raw, '') : line;
+  const parts = rest.split('|').map((p) => p.trim());
+  while (parts.length > 1 && !parts[parts.length - 1]) parts.pop(); // the emptied link column
   const [author = '', title = '', publication = '', date = ''] = parts.length > 1 ? parts : ['', parts[0]];
-  return { author, title: title || line.replace(url, '').trim(), publication, date, url: url.replace(/[.,;)]+$/, ''), accessed: '' };
+  return { author, title: title || rest.trim(), publication, date, url, accessed: '' };
 }
 
 /**
@@ -184,25 +281,24 @@ export function buildContent(answers, base) {
   const content = structuredClone(base);
   const lead = content.lead_story;
   const set = (code, apply) => answers[code] !== undefined && apply(answers[code]);
-  set('A1', (v) => (lead.kicker = v.split('\n')[0].slice(0, 200)));
-  set('A2', (v) => (lead.headline = v.replace(/\s*\n\s*/g, ' ').slice(0, 300)));
-  set('A3', (v) => (lead.subheadline = v.replace(/\s*\n\s*/g, ' ').slice(0, 500)));
-  set('A4', (v) => (lead.deck = v.slice(0, 1000)));
-  set('A5', (v) => (lead.byline = v.split('\n')[0].replace(/^by\s+/i, '').slice(0, 200)));
+  set('A1', (v) => (lead.kicker = v.split('\n')[0]));
+  set('A2', (v) => (lead.headline = v.replace(/\s*\n\s*/g, ' ')));
+  set('A3', (v) => (lead.subheadline = v.replace(/\s*\n\s*/g, ' ')));
+  set('A4', (v) => (lead.deck = v));
+  set('A5', (v) => (lead.byline = v.split('\n')[0].replace(/^by\s+/i, '')));
   set('A6', (v) =>
-    (content.tags = [...new Set(v.split(/[,\n;]+/).map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 8).map((t) => t.slice(0, 40))),
+    (content.tags = [...new Set(v.split(/[,\n;]+/).map((t) => t.trim().toLowerCase()).filter(Boolean))]),
   );
 
   const numbers = [...new Set(Object.keys(answers).filter((k) => /^[HR]\d+$/.test(k)).map((k) => Number(k.slice(1))))].sort((a, b) => a - b);
   lead.sections = numbers
-    .map((i) => ({ headline: (answers[`H${i}`] ?? '').replace(/\s*\n\s*/g, ' ').slice(0, 300), body_markdown: (answers[`R${i}`] ?? '').slice(0, 20000), media: [] }))
-    .filter((s) => s.headline || s.body_markdown)
-    .slice(0, 30);
+    .map((i) => ({ headline: (answers[`H${i}`] ?? '').replace(/\s*\n\s*/g, ' '), body_markdown: answers[`R${i}`] ?? '', media: [] }))
+    .filter((s) => s.headline || s.body_markdown);
 
-  set('C1', (v) => (lead.historical_context_markdown = v.slice(0, 20000)));
-  set('C2', (v) => (lead.what_to_watch = lines(v).slice(0, 12).map((l) => l.slice(0, 500))));
-  set('S1', (v) => (content.bibliography = lines(v).slice(0, 100).map(source)));
-  const editorNote = (answers.C3 ?? '').slice(0, 8000);
+  set('C1', (v) => (lead.historical_context_markdown = v));
+  set('C2', (v) => (lead.what_to_watch = lines(v)));
+  set('S1', (v) => (content.bibliography = lines(v).map(source)));
+  const editorNote = answers.C3 ?? '';
 
   const missing = [];
   if (!lead.headline) missing.push('A2 (main headline)');

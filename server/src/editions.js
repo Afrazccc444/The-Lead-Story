@@ -113,7 +113,7 @@ function storyTitles(content = {}) {
     }
   }
   for (const items of Object.values(content.global_briefing ?? {})) for (const i of items ?? []) if (i.headline) titles.push(i.headline);
-  return titles.slice(0, 12);
+  return titles;
 }
 
 export function listPublished() {

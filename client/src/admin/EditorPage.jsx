@@ -367,7 +367,7 @@ export default function EditorPage() {
               onChange={(v) => setLead('historical_context_markdown', v)}
             />
             <LinesField label="What to watch (optional)" value={content.lead_story.what_to_watch} onChange={(v) => setLead('what_to_watch', v)} />
-            <h4 className="mini-title">Pull quotes (optional, up to 4)</h4>
+            <h4 className="mini-title">Pull quotes (optional)</h4>
             <p className="field__hint">
               Striking lines from your article. On computers they appear large in the right margin, spaced evenly down the story; on
               phones they sit between paragraphs.
