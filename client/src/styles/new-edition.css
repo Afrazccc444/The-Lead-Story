@@ -1,0 +1,184 @@
+/* "New edition" dialog: write in the editor, or use the question template. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(10, 10, 10, 0.55);
+  animation: modal-fade 0.2s ease-out both;
+}
+
+.modal {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  width: min(44rem, 100%);
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-sans); /* same as the Editor’s desk (the dialog lives outside it) */
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.modal__title {
+  margin-top: calc(-1 * var(--space-2));
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+}
+
+.modal__close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.choice {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-3);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-hover), transform 120ms ease;
+}
+
+.choice:hover:not(:disabled),
+.choice:focus-visible {
+  border-color: var(--accent);
+}
+
+.choice:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.choice__icon {
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.choice__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.choice__text {
+  font-size: 0.9rem;
+  color: var(--ink-2);
+}
+
+.template-steps {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tstep;
+}
+
+.template-steps > li {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  padding-left: 2.6rem;
+  counter-increment: tstep;
+}
+
+.template-steps > li::before {
+  content: counter(tstep);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font: 700 0.9rem var(--font-sans);
+}
+
+.template-steps__title {
+  font-weight: 700;
+}
+
+.template-steps__text {
+  font-size: 0.9rem;
+  color: var(--ink-2);
+}
+
+.template-steps__count {
+  width: 6rem;
+}
+
+.template-steps__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.template-steps__upload {
+  justify-self: start;
+  cursor: pointer;
+}
+
+.template-steps__upload.is-busy {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.code-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.code-table th,
+.code-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.code-table th {
+  width: 6.5rem;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

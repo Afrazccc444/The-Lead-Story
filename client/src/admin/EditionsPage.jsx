@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { formatDate, formatDateTime } from '../lib/format.js';
 import { useApi, useDocumentTitle } from '../lib/useApi.js';
 import { deleteWarning, EditionStatus, Notice } from './components.jsx';
+import NewEditionDialog from './NewEditionDialog.jsx';
 import { useSessionUser } from './session.js';
 
 export default function EditionsPage() {
   const { data, error, loading, reload } = useApi('/admin/editions');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState(null);
+  const [choosing, setChoosing] = useState(false); // the "New edition" dialog
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -27,21 +27,8 @@ export default function EditionsPage() {
       setDeleting(null);
     }
   }
-  const navigate = useNavigate();
   const isOwner = useSessionUser()?.role === 'owner';
   useDocumentTitle('Editions');
-
-  async function createEdition() {
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const { edition } = await api.post('/admin/editions');
-      navigate(`/admin/editions/${edition.id}`);
-    } catch (err) {
-      setCreateError(err.message);
-      setCreating(false);
-    }
-  }
 
   const editions = data?.editions ?? [];
 
@@ -53,12 +40,12 @@ export default function EditionsPage() {
           <h1 className="page-head__title">Editions</h1>
           <p className="page-head__dek">Write each week’s newsletter, preview it, and publish when it’s ready.</p>
         </div>
-        <button type="button" className="btn btn--primary" onClick={createEdition} disabled={creating}>
-          {creating ? 'Creating…' : '+ New edition'}
+        <button type="button" className="btn btn--primary" onClick={() => setChoosing(true)}>
+          + New edition
         </button>
       </header>
 
-      {createError && <Notice tone="error">{createError}</Notice>}
+      {choosing && <NewEditionDialog onClose={() => setChoosing(false)} />}
       {notice && (
         <Notice key={notice.text} tone={notice.tone} onClose={() => setNotice(null)}>
           {notice.text}

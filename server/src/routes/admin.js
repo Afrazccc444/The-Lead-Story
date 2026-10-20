@@ -1,5 +1,5 @@
 import { unlinkSync } from 'node:fs';
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { z } from 'zod';
 import { getSetting, setSetting } from '../db.js';
 import * as editions from '../editions.js';
@@ -7,6 +7,7 @@ import { requireOwner, requireUser } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errors.js';
 import { IMAGE_URL_PATTERN, VIDEO_URL_PATTERN } from './uploads.js';
 import { clearPdfCache, draftPdf } from '../pdf.js';
+import * as template from '../template.js';
 
 const router = Router();
 router.use(requireUser);
@@ -202,6 +203,46 @@ router.put('/site', requireOwner, (req, res) => {
 router.get('/editions', (req, res) => {
   res.json({ editions: editions.listAll(req.user.role === 'owner' ? null : req.user.id) });
 });
+
+// ── Question template: create an edition from an answered document ──
+/** Download the template for N headlines, as Word (.docx) or plain text. */
+router.get('/template', (req, res) => {
+  const headlines = z.coerce.number().int().min(1).max(template.MAX_HEADLINES).catch(3).parse(req.query.headlines);
+  const name = `The-Lead-Story-template-${headlines}-headline${headlines === 1 ? '' : 's'}`;
+  if (req.query.format === 'txt') {
+    res.type('text/plain; charset=utf-8').attachment(`${name}.txt`).send(template.templateText(headlines));
+  } else {
+    res
+      .type('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      .attachment(`${name}.docx`)
+      .send(template.templateDocx(headlines));
+  }
+});
+
+/** Upload an answered template (Word, PDF or text): the edition is created and laid out automatically. */
+router.post(
+  '/template/import',
+  express.raw({ type: () => true, limit: '25mb' }),
+  asyncHandler(async (req, res) => {
+    if (!req.body?.length) return res.status(400).json({ error: 'Please choose your answered template file.' });
+    const fileName = decodeURIComponent(req.get('x-file-name') ?? '');
+    let text;
+    try {
+      text = await template.extractText(req.body, fileName);
+    } catch (err) {
+      return res.status(422).json({ error: err.message?.startsWith('Old Word') ? err.message : 'This file could not be read. Please upload a Word (.docx), PDF or text file.' });
+    }
+    const { answers, unknown } = template.readAnswers(text);
+    if (!Object.keys(answers).length) {
+      return res.status(422).json({ error: 'No answers were found. Make sure each answer is written under its code, like [A2] or [R1].' });
+    }
+    const { content, editorNote, report } = template.buildContent(answers, editions.emptyContent());
+    const patch = editionPatch.parse({ content, editor_note: editorNote }); // checked before anything is created
+    const created = editions.create(req.user.id);
+    const edition = editions.update(created.id, patch);
+    res.status(201).json({ edition, report: { ...report, unknown } });
+  }),
+);
 
 router.post('/editions', (req, res) => {
   res.status(201).json({ edition: editions.create(req.user.id) });

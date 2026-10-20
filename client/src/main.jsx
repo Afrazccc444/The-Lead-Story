@@ -13,6 +13,7 @@ import './styles/base.css';
 import './styles/newsletter.css';
 import './styles/admin.css';
 import './styles/accounts.css';
+import './styles/new-edition.css';
 import './styles/blocks.css';
 import './styles/intro.css';
 import './styles/reader.css';

@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import EditionView from '../components/newsletter/EditionView.jsx';
 import PdfButton from '../components/PdfButton.jsx';
 import { api } from '../lib/api.js';
@@ -55,9 +55,23 @@ function draftFrom(edition) {
   };
 }
 
+/** After creating an edition from the question template: what was filled in, and what to do next. */
+function ImportReport({ report, onClose }) {
+  return (
+    <Notice tone={report.missing?.length ? 'warn' : 'good'} onClose={onClose} sticky>
+      <strong>Laid out from your template:</strong> {report.headlines} headline{report.headlines === 1 ? '' : 's'} and{' '}
+      {report.sources} source{report.sources === 1 ? '' : 's'}. Check the text below, then add photos and videos to each
+      headline before publishing.
+      {report.missing?.length > 0 && <> Still empty: {report.missing.join(', ')}.</>}
+      {report.unknown?.length > 0 && <> Codes not recognised (ignored): {report.unknown.join(', ')}.</>}
+    </Notice>
+  );
+}
+
 export default function EditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [edition, setEdition] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -138,6 +152,7 @@ export default function EditorPage() {
   const deferredPreview = useDeferredValue(previewEdition);
 
   if (loadError) return <Notice tone="error">Could not load this edition: {loadError.message}</Notice>;
+  const imported = location.state?.imported;
   if (!draft) return <p className="state-message">Loading…</p>;
 
   const content = draft.content;
@@ -234,6 +249,8 @@ export default function EditorPage() {
           </button>
         )}
       </div>
+
+      {imported && <ImportReport report={imported} onClose={() => navigate('.', { replace: true, state: null })} />}
 
       {message && (
         <Notice key={message.text} tone={message.tone} onClose={() => setMessage(null)} sticky={Boolean(message.link)}>
